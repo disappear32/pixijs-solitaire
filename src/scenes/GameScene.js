@@ -1,5 +1,6 @@
 import { Manager } from "../Manager.js"
 
+
 export class GameScene extends PIXI.Container {
     constructor() {
         super()
@@ -11,15 +12,11 @@ export class GameScene extends PIXI.Container {
 
         //Бэк
         this.background = PIXI.Sprite.from('background')
-        // this.background.anchor.set(0.5)
-        // this.background.x = 412 / 2
-        // this.background.y = 720 / 2
         this.background.x = 0
         this.background.y = 0
-        this.background.width = 412
-        this.background.height = 720
+        this.background.width = Manager.settings.width
+        this.background.height = Manager.settings.maxHeight
         this.gameContainer.addChild(this.background)
-        //this.gameContainer.visible = false
         
         this.onResize()
     }
@@ -29,11 +26,21 @@ export class GameScene extends PIXI.Container {
     }
 
     onResize() {
-        const scale = Math.max(Manager.canvasHeight / 720, Manager.canvasWidth / 412)
-        this.gameContainer.scale.set(scale, scale)
-        //this.gameContainer.y = - ((this.width - Manager.maxHeight) / 2) * scale
+        const scaleFactor = Manager.canvasWidth / Manager.settings.width
 
-        console.log(this.height)
-        console.log('\n')
+        let offsetY
+        if (Manager.heightStage == 'maxHeight') {
+            offsetY = -1 * Manager.canvasHeight / Manager.settings.minHeight * (Manager.settings.maxHeight - Manager.settings.minHeight) / 2
+        } 
+        else if (Manager.heightStage == 'changingHeight') {
+            offsetY = -1 * (Manager.settings.maxHeight * scaleFactor - Manager.canvasHeight) / 2
+        } 
+        if (Manager.heightStage == 'minHeight') {
+            offsetY = 0
+        }
+        this.gameContainer.y = offsetY
+
+        const scale = Math.max(Manager.canvasHeight / Manager.settings.maxHeight, Manager.canvasWidth / Manager.settings.width)
+        this.gameContainer.scale.set(scale, scale)
     }
 }

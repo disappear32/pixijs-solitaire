@@ -2,15 +2,16 @@ export class Manager {
     constructor() { }
 
     app
+    settings
+    parentContainer
 
     _canvasWidth
     _canvasHeight
 
-    _minHeight
-    _maxHeight
-
     currentScene
     scale
+
+    heightStage
 
     static get canvasWidth() {
         return Manager._canvasWidth
@@ -18,33 +19,33 @@ export class Manager {
     static get canvasHeight() {
         return Manager._canvasHeight
     }
-    static get minHeight() {
-        return Manager._minHeight
-    }
-    static get maxHeight() {
-        return Manager._maxHeight
-    }
 
-    static initialize(width, minHeight, maxHeight, background) {
-        Manager._minHeight = minHeight
-        Manager._maxHeight = maxHeight
+    static initialize(width, minHeight, maxHeight, backColor) {
+        Manager.settings = {
+            width: width,
+            minHeight: minHeight,
+            maxHeight: maxHeight,
+            backColor: backColor
+        }
+
+        Manager.parentContainer = document.getElementById("game-container")
 
         Manager.app = new PIXI.Application({
             view: document.getElementById("game"),
             resolution: window.devicePixelRatio || 1,
             autoDensity: true,
-            backgroundColor: background,
-            resizeTo: document.getElementById("game-container")
+            backgroundColor: backColor,
+            resizeTo: Manager.parentContainer
         })
-        
+
         Manager._canvasWidth = Manager.app.view.clientHeight
-        Manager._canvasHeight = Manager.app.view.clientWidth 
+        Manager._canvasHeight = Manager.app.view.clientWidth
 
         Manager.app.ticker.add(Manager.update)
 
-        window.addEventListener('resize', () => { 
+        window.addEventListener('resize', () => {
             Manager.resize()
-        }) 
+        })
 
         Manager.resize()
     }
@@ -66,6 +67,32 @@ export class Manager {
     }
 
     static resize() {
+        const viewportWidth = window.innerWidth
+        const viewportHeight = window.innerHeight
+
+        const aspectRatioMax = Manager.settings.width / Manager.settings.maxHeight
+        const aspectRatioMin = Manager.settings.width / Manager.settings.minHeight
+        const currAspect = viewportWidth / viewportHeight
+
+        let canvasWidth, canvasHeight
+        if (currAspect > aspectRatioMin) {
+            canvasWidth = viewportHeight * aspectRatioMin
+            canvasHeight = viewportHeight
+            Manager.heightStage = 'maxHeight'
+        } else if (currAspect <= aspectRatioMin && currAspect > aspectRatioMax) {
+            canvasWidth = viewportWidth
+            canvasHeight = viewportHeight
+            Manager.heightStage = 'changingHeight'
+        }
+        else if (currAspect <= aspectRatioMax) {
+            canvasWidth = viewportWidth
+            canvasHeight = viewportWidth / aspectRatioMax
+            Manager.heightStage = 'minHeight'
+        }
+
+        Manager.parentContainer.style.setProperty("width", `${canvasWidth}px`)
+        Manager.parentContainer.style.setProperty("height", `${canvasHeight}px`)
+
         Manager.app.resize()
 
         Manager._canvasHeight = Manager.app.view.clientHeight
