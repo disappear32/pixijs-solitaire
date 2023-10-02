@@ -2,8 +2,6 @@ export class Manager {
     constructor() { }
 
     app
-    _width
-    _height
 
     _canvasWidth
     _canvasHeight
@@ -14,12 +12,6 @@ export class Manager {
     currentScene
     scale
 
-    static get width() {
-        return Manager._width
-    }
-    static get height() {
-        return Manager._height
-    }
     static get canvasWidth() {
         return Manager._canvasWidth
     }
@@ -34,8 +26,6 @@ export class Manager {
     }
 
     static initialize(width, minHeight, maxHeight, background) {
-        Manager._width = width
-        Manager._height = maxHeight
         Manager._minHeight = minHeight
         Manager._maxHeight = maxHeight
 
@@ -47,10 +37,16 @@ export class Manager {
             resizeTo: document.getElementById("game-container")
         })
         
-        Manager._canvasWidth = document.getElementById('game').clientWidth
-        Manager._canvasHeight = document.getElementById('game').clientHeight 
+        Manager._canvasWidth = Manager.app.view.clientHeight
+        Manager._canvasHeight = Manager.app.view.clientWidth 
 
         Manager.app.ticker.add(Manager.update)
+
+        window.addEventListener('resize', () => { 
+            Manager.resize()
+        }) 
+
+        Manager.resize()
     }
 
     static changeScene(newScene) {
@@ -70,11 +66,13 @@ export class Manager {
     }
 
     static resize() {
-        if (Manager.currentScene) {
-            Manager.currentScene.onResize()
-        }
+        Manager.app.resize()
 
-        Manager._canvasHeight = document.getElementById('game').clientHeight
-        Manager._canvasWidth = document.getElementById('game').clientWidth
+        Manager._canvasHeight = Manager.app.view.clientHeight
+        Manager._canvasWidth = Manager.app.view.clientWidth
+
+        if (Manager.currentScene) {
+            Manager.currentScene.onResize?.()
+        }
     }
 }
