@@ -8,7 +8,7 @@ const manifest = {
             assets:
             {
                 "play": "./resources/background.png",
-                "background": "./resources/background.png"
+                "background": "./resources/game-background.jpg"
             }
         }
     ]

@@ -1,6 +1,5 @@
 import { Manager } from "../Manager.js"
 
-
 export class GameScene extends PIXI.Container {
     constructor() {
         super()
@@ -14,10 +13,20 @@ export class GameScene extends PIXI.Container {
         this.background = PIXI.Sprite.from('background')
         this.background.x = 0
         this.background.y = 0
-        this.background.width = Manager.settings.width
-        this.background.height = Manager.settings.maxHeight
+        this.background.width = Manager.gameArea.width
+        this.background.height = Manager.gameArea.maxHeight
         this.gameContainer.addChild(this.background)
-        
+
+        const gameContext = new PIXI.Container()
+        gameContext.x = 0
+        gameContext.y = (Manager.gameArea.maxHeight - Manager.gameArea.minHeight) / 2
+        this.gameContainer.addChild(gameContext)
+
+        const rect = new PIXI.Graphics()
+        rect.beginFill(0xFF00FF, 0.0001)
+        rect.drawRect(0, 0, Manager.gameArea.width, Manager.gameArea.minHeight)
+        gameContext.addChild(rect)
+
         this.onResize()
     }
 
@@ -26,21 +35,42 @@ export class GameScene extends PIXI.Container {
     }
 
     onResize() {
-        const scaleFactor = Manager.canvasWidth / Manager.settings.width
+        const { 
+            width: canvasWidth, 
+            height: canvasHeight 
+        } = Manager.canvasArea
+
+        const { 
+            width: gameWidth, 
+            currHeight: gameHeight, 
+            minHeight: gameMinHeight, 
+            maxHeight: gameMaxHeight 
+        } = Manager.gameArea
+
+        const RESIZE_STAGE = Manager.RESIZE_STAGE
+        const currResizeStageId = Manager.currResizeStageId
+    
+        const scale = Math.max(canvasHeight / gameMaxHeight, canvasWidth / gameWidth)
 
         let offsetY
-        if (Manager.heightStage == 'maxHeight') {
-            offsetY = -1 * Manager.canvasHeight / Manager.settings.minHeight * (Manager.settings.maxHeight - Manager.settings.minHeight) / 2
-        } 
-        else if (Manager.heightStage == 'changingHeight') {
-            offsetY = -1 * (Manager.settings.maxHeight * scaleFactor - Manager.canvasHeight) / 2
-        } 
-        if (Manager.heightStage == 'minHeight') {
-            offsetY = 0
-        }
-        this.gameContainer.y = offsetY
+        switch(currResizeStageId) {
+            case RESIZE_STAGE.MAX:
+                offsetY = -1 * scale * (gameMaxHeight - gameMinHeight) / 2
 
-        const scale = Math.max(Manager.canvasHeight / Manager.settings.maxHeight, Manager.canvasWidth / Manager.settings.width)
+                break
+
+            case RESIZE_STAGE.CHANGING:
+                offsetY = -1 * scale * (gameMaxHeight - gameHeight) / 2
+
+                break
+
+            case RESIZE_STAGE.MIN:
+                offsetY = 0
+
+                break
+        }
+
+        this.gameContainer.y = offsetY
         this.gameContainer.scale.set(scale, scale)
     }
 }

@@ -1,35 +1,17 @@
 export class Manager {
     constructor() { }
-
     app
-    settings
     parentContainer
-
-    _canvasWidth
-    _canvasHeight
-
     currentScene
-    scale
 
-    heightStage
+    canvasArea
+    gameArea
 
-    static get canvasWidth() {
-        return Manager._canvasWidth
-    }
-    static get canvasHeight() {
-        return Manager._canvasHeight
-    }
+    currResizeStageId
+    RESIZE_STAGE
 
     static initialize(width, minHeight, maxHeight, backColor) {
-        Manager.settings = {
-            width: width,
-            minHeight: minHeight,
-            maxHeight: maxHeight,
-            backColor: backColor
-        }
-
         Manager.parentContainer = document.getElementById("game-container")
-
         Manager.app = new PIXI.Application({
             view: document.getElementById("game"),
             resolution: window.devicePixelRatio || 1,
@@ -38,8 +20,22 @@ export class Manager {
             resizeTo: Manager.parentContainer
         })
 
-        Manager._canvasWidth = Manager.app.view.clientHeight
-        Manager._canvasHeight = Manager.app.view.clientWidth
+
+        Manager.canvasArea = {
+            width: Manager.app.view.clientWidth,
+            height: Manager.app.view.clientHeight,
+        }
+        Manager.gameArea = {
+            width: width,
+            currHeight: Manager.canvasArea.height / (Manager.canvasArea.width / width),
+            minHeight: minHeight,
+            maxHeight: maxHeight
+        }
+        Manager.RESIZE_STAGE = {
+            MAX: 0,
+            CHANGING: 1,
+            MIN: 2
+        }
 
         Manager.app.ticker.add(Manager.update)
 
@@ -70,24 +66,37 @@ export class Manager {
         const viewportWidth = window.innerWidth
         const viewportHeight = window.innerHeight
 
-        const aspectRatioMax = Manager.settings.width / Manager.settings.maxHeight
-        const aspectRatioMin = Manager.settings.width / Manager.settings.minHeight
-        const currAspect = viewportWidth / viewportHeight
+        const { 
+            width: gameWidth, 
+            minHeight: gameMinHeight, 
+            maxHeight: gameMaxHeight 
+        } = Manager.gameArea
+        
+        const RESIZE_STAGE = Manager.RESIZE_STAGE
+
+        const aspectRatioMinSize = gameWidth / gameMinHeight
+        const aspectRatioMaxSize = gameWidth / gameMaxHeight
+        const currentAspectRatio = viewportWidth / viewportHeight
 
         let canvasWidth, canvasHeight
-        if (currAspect > aspectRatioMin) {
-            canvasWidth = viewportHeight * aspectRatioMin
+
+        if (currentAspectRatio > aspectRatioMinSize) {
+            canvasWidth = viewportHeight * aspectRatioMinSize
             canvasHeight = viewportHeight
-            Manager.heightStage = 'maxHeight'
-        } else if (currAspect <= aspectRatioMin && currAspect > aspectRatioMax) {
+
+            Manager.currResizeStageId = RESIZE_STAGE.MAX
+        } 
+        if (currentAspectRatio <= aspectRatioMinSize && currentAspectRatio > aspectRatioMaxSize) {
             canvasWidth = viewportWidth
             canvasHeight = viewportHeight
-            Manager.heightStage = 'changingHeight'
+
+            Manager.currResizeStageId = RESIZE_STAGE.CHANGING
         }
-        else if (currAspect <= aspectRatioMax) {
+        if (currentAspectRatio <= aspectRatioMaxSize) {
             canvasWidth = viewportWidth
-            canvasHeight = viewportWidth / aspectRatioMax
-            Manager.heightStage = 'minHeight'
+            canvasHeight = viewportWidth / aspectRatioMaxSize
+
+            Manager.currResizeStageId = RESIZE_STAGE.MIN
         }
 
         Manager.parentContainer.style.setProperty("width", `${canvasWidth}px`)
@@ -95,8 +104,11 @@ export class Manager {
 
         Manager.app.resize()
 
-        Manager._canvasHeight = Manager.app.view.clientHeight
-        Manager._canvasWidth = Manager.app.view.clientWidth
+        Manager.canvasArea.width = Manager.app.view.clientWidth
+        Manager.canvasArea.height = Manager.app.view.clientHeight
+
+        const scaleFactor = Manager.canvasArea.width / Manager.gameArea.width
+        Manager.gameArea.currHeight = Manager.canvasArea.height / scaleFactor
 
         if (Manager.currentScene) {
             Manager.currentScene.onResize?.()
