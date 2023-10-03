@@ -7,8 +7,18 @@ const manifest = {
             name: "UI Bundle",
             assets:
             {
-                "play": "./resources/background.png",
                 "background": "./resources/game-background.jpg"
+            }
+        },
+        {
+            name: "Cards Bundle",
+            assets:
+            {
+                "spade": "./resources/spade.png",
+                "club": "./resources/club.png",
+                "heart": "./resources/heart.png",
+                "diamond": "./resources/diamond.png",
+                "card_back": "./resources/card_back.png",
             }
         }
     ]
