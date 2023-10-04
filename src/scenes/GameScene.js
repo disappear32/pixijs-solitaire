@@ -1,4 +1,7 @@
 import { Manager } from "../Manager.js"
+import Stack from "../game-objects/Stack.js"
+import Deck from "../game-objects/Deck.js"
+import Slot from "../game-objects/Deck.js"
 
 export class GameScene extends PIXI.Container {
     constructor() {
@@ -29,13 +32,21 @@ export class GameScene extends PIXI.Container {
 
         this.onResize()
 
-        //const renderer = PIXI.autoDetectRenderer()
         this.createCardTextures()
 
-        const test = PIXI.Sprite.from('10_heart')
-        test.x = 100
-        test.y = 100
-        gameContext.addChild(test)
+        const stacks = []
+        for (let i = 0; i < 7; i++) {
+            const stack = new Stack(this, i)
+            stacks.push(stack)
+        }
+
+        const slots = []
+        for (let i = 0; i < 4; i++) {
+            const slot = new Slot(this, i)
+            slots.push(slot)
+        }
+
+        const deck = new Deck(this)
     }
 
     update(framesPassed) {
@@ -85,7 +96,7 @@ export class GameScene extends PIXI.Container {
                 const cardContainer = new PIXI.Container()
                 cardContainer.addChild(backTexture, valueTexture, topText, middleText)
 
-                const cardTexture = PIXI.RenderTexture.create({ width: cardSize.width, height: cardSize.height, resolution: 5})
+                const cardTexture = PIXI.RenderTexture.create({ width: cardSize.width, height: cardSize.height, resolution: 5 })
                 Manager.app.renderer.render(cardContainer, { renderTexture: cardTexture })
 
                 PIXI.Texture.addToCache(cardTexture, value + '_' + suit.name)
