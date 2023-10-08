@@ -1,107 +1,188 @@
 import { Manager } from "../Manager.js"
-import Stack from "../game-objects/Stack.js"
-import Deck from "../game-objects/Deck.js"
-import Slot from "../game-objects/Deck.js"
+import { StackView } from "../game-objects/StackView.js"
+import { DeckView } from "../game-objects/DeckView.js"
+import { SlotView } from "../game-objects/SlotView.js"
+import { CardView } from "../game-objects/CardView.js"
+import Settings from "../utils/Settings.js"
 
 export class GameScene extends PIXI.Container {
+    adaptiveContainer
+    stableGameContainer
+
+    stacks
+    slots
+    deck
+
+    cards
+
     constructor() {
         super()
 
-        this.gameContainer = new PIXI.Container()
-        this.gameContainer.x = 0
-        this.gameContainer.y = 0
-        this.addChild(this.gameContainer)
+        //Создаем стабильный контейнер, где будем хранить элементы игры
+        this.adaptiveContainer = this.createAdaptiveContainer()
+        this.stableGameContainer = this.createStableContainer()
 
-        //Бэк
-        this.background = PIXI.Sprite.from('background')
-        this.background.x = 0
-        this.background.y = 0
-        this.background.width = Manager.gameArea.width
-        this.background.height = Manager.gameArea.maxHeight
-        this.gameContainer.addChild(this.background)
+        //Создание объектов игры
+        const cardSize = Settings.cardSize
 
-        const gameContext = new PIXI.Container()
-        gameContext.x = 0
-        gameContext.y = (Manager.gameArea.maxHeight - Manager.gameArea.minHeight) / 2
-        this.gameContainer.addChild(gameContext)
-
-        const rect = new PIXI.Graphics()
-        rect.beginFill(0xFF00FF, 0.0001)
-        rect.drawRect(0, 0, Manager.gameArea.width, Manager.gameArea.minHeight)
-        gameContext.addChild(rect)
-
-        this.onResize()
-
-        this.createCardTextures()
-
-        const stacks = []
+        this.stacks = []
         for (let i = 0; i < 7; i++) {
-            const stack = new Stack(this, i)
-            stacks.push(stack)
+            const stackLength = i + 1
+            const stackWidth = cardSize.width
+            const stackGap = 5
+            const stackX = 15 + i * (stackWidth + stackGap)
+            const stackY = 155
+            const stackId = i
+
+            const stack = new StackView(this.stableGameContainer, stackX, stackY, stackId, stackLength, cardSize)
+            this.stacks.push(stack)
         }
 
-        const slots = []
+        this.slots = []
         for (let i = 0; i < 4; i++) {
-            const slot = new Slot(this, i)
-            slots.push(slot)
+            const slotWidth = cardSize.width
+            const slotGap = 5
+            const slotX = 15 + i * (slotWidth + slotGap)
+            const slotY = 45
+            const slotId = i
+            const slotName = Settings.suits.get(i).name
+
+            const slot = new SlotView(this.stableGameContainer, slotX, slotY, slotId, slotName, cardSize)
+            this.slots.push(slot)
         }
 
-        const deck = new Deck(this)
+        this.deck = new DeckView(this.stableGameContainer, cardSize)
+
+
+
+
+        const randomCardsMap = this.createShuffleCardsMap()
+        console.log(randomCardsMap)
+
+        this.cards = []
+        randomCardsMap.forEach((cardSetting) => {
+            const card = new CardView(
+                this.stableGameContainer,
+                0, 0,
+                cardSize.width, cardSize.height,
+                cardSetting.name,
+                cardSetting.suit,
+                cardSetting.value
+            )
+
+            this.cards.push(card)
+        })
+
+        this.deck.addCard(this.cards)
+
+        this.startGame()
+    }
+
+    startGame() {
+        let cardCount = 0
+
+        this.stacks.forEach((stack) => {
+            for (let cardIndex = 0; cardIndex < stack.initLenght; cardIndex++) {
+
+                const isOpen = cardIndex == stack.initLenght - 1 ? true : false
+                const card = this.cards[cardCount]
+                stack.addCard(card, isOpen)
+                cardCount++
+            }
+        })
+
+        this.startAnimation().then(() => {
+        })
+    }
+
+    async startAnimation() {
+        for (const stack of this.stacks) {
+            for (const card of stack.cards) {
+                await new Promise(resolve => {
+                    setTimeout(() => {
+                        const cardNextPos = stack.getCardPositionByIndex(card.indexInStack)
+
+                        if (card.isOpen) card.flipAndMoveToStackPos(cardNextPos)
+                        else card.move(cardNextPos)
+
+                        resolve()
+                    }, 100)
+                })
+            }
+        }
+    }
+
+    createAdaptiveContainer() {
+        //Создание адаптивного контейнера, в зависимости от размеров вьюпорта он сжимается-разжимается от максимального размера до размера игрового контейнера
+        const adaptiveContainer = new PIXI.Container()
+        this.addChild(adaptiveContainer)
+
+        return adaptiveContainer
+    }
+
+    createStableContainer() {
+        //Бэкграунд на всю высоту адаптивного контейнера
+        const background = PIXI.Sprite.from('background')
+        background.x = 0
+        background.y = 0
+        background.width = Manager.gameArea.width
+        background.height = Manager.gameArea.maxHeight
+        this.adaptiveContainer.addChild(background)
+
+        //Контейнер игры, в нем фиксированные высота и ширина. Здесь и только здесь хранятся элементы игры
+        const stableGameContainer = new PIXI.Container()
+        stableGameContainer.x = 0
+        stableGameContainer.y = (Manager.gameArea.maxHeight - Manager.gameArea.minHeight) / 2
+        this.adaptiveContainer.addChild(stableGameContainer)
+
+        //Дергаем ресайз, чтобы все расставилось как надо по вьюпорту
+        this.onResize(stableGameContainer)
+
+        return stableGameContainer
+    }
+
+    createShuffleCardsMap() {
+        const map = new Map()
+
+        const valuesMap = Settings.values
+        const suitsMap = Settings.suits
+
+        let cardKey = 0
+        for (let i = 0; i < 4; i++) {
+            const suitKey = i
+
+            for (let j = 0; j < 13; j++) {
+                const valueKey = j
+
+                map.set(cardKey, {
+                    suit: suitsMap.get(suitKey).name,
+                    name: valuesMap.get(valueKey).name + '_' + suitsMap.get(suitKey).name,
+                    value: valuesMap.get(valueKey).value
+                })
+
+                cardKey++
+            }
+        }
+
+        let m = map.size, t, i
+
+        // Пока есть элементы для перемешивания
+        while (m) {
+
+            // Взять оставшийся элемент
+            i = Math.floor(Math.random() * m--);
+
+            // И поменять его местами с текущим элементом
+            t = map.get(m);
+            map.set(m, map.get(i))
+            map.set(i, t);
+        }
+
+        return map
     }
 
     update(framesPassed) {
         TWEEN.update()
-    }
-
-    createCardTextures() {
-        const suits = [
-            { name: 'diamond', color: 0xFF0000 },
-            { name: 'heart', color: 0xFF0000 },
-            { name: 'spade', color: 0x000000 },
-            { name: 'club', color: 0x000000 }
-        ]
-        const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
-        const cardSize = { width: 45, height: 70 }
-
-        suits.forEach((suit) => {
-            values.forEach((value) => {
-                const backTexture = PIXI.Sprite.from('card_back')
-                backTexture.position.set(0, 0)
-                backTexture.width = cardSize.width
-                backTexture.height = cardSize.height
-
-                const valueTexture = PIXI.Sprite.from(suit.name)
-                valueTexture.position.set(28, 5)
-                valueTexture.width = 12
-                valueTexture.height = 12
-
-                const topText = new PIXI.Text(value, new PIXI.TextStyle({
-                    fill: suit.color,
-                    fontSize: 16,
-                    align: 'left',
-                    fontFamily: "\"Trebuchet MS\", Helvetica, sans-serif",
-                    fontWeight: "bold",
-                }))
-                topText.position.set(4, 2)
-
-                const middleText = new PIXI.Text(value, new PIXI.TextStyle({
-                    fill: suit.color,
-                    fontSize: 32,
-                    align: 'left',
-                    fontFamily: "\"Trebuchet MS\", Helvetica, sans-serif",
-                    fontWeight: "bold",
-                }))
-                middleText.position.set(2, 26)
-
-                const cardContainer = new PIXI.Container()
-                cardContainer.addChild(backTexture, valueTexture, topText, middleText)
-
-                const cardTexture = PIXI.RenderTexture.create({ width: cardSize.width, height: cardSize.height, resolution: 5 })
-                Manager.app.renderer.render(cardContainer, { renderTexture: cardTexture })
-
-                PIXI.Texture.addToCache(cardTexture, value + '_' + suit.name)
-            })
-        })
     }
 
     onResize() {
@@ -140,7 +221,7 @@ export class GameScene extends PIXI.Container {
                 break
         }
 
-        this.gameContainer.y = offsetY
-        this.gameContainer.scale.set(scale, scale)
+        this.adaptiveContainer.y = offsetY
+        this.adaptiveContainer.scale.set(scale, scale)
     }
 }
