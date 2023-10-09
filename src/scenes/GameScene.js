@@ -107,26 +107,21 @@ export class GameScene extends PIXI.Container {
     }
 
     onDragStart(event) {
-        this.dragObj = event.target
+        this.dragObj = event.target instanceof CardView ? event.target : () => { return }
 
         if (this.dragObj.isOpen && this.dragObj instanceof CardView) {
-        
+
             this.dragObj.prevPosX = this.dragObj.x
             this.dragObj.prevPosY = this.dragObj.y
 
-            this.lastPosition = event.data.getLocalPosition(this.parent)
+            this.lastPosition = event.data.getLocalPosition(this.stableGameContainer)
             this.isDragging = true
         }
-        console.log(event.data.getLocalPosition(this))
     }
 
     onDragMove(event) {
-
         if (this.lastPosition && this.isDragging) {
-
-            console.log(this.dragObj)
-            console.log(event)
-            const newPosition = event.data.getLocalPosition(this.parent)
+            const newPosition = event.data.getLocalPosition(this.stableGameContainer)
             this.dragObj.x += (newPosition.x - this.lastPosition.x)
             this.dragObj.y += (newPosition.y - this.lastPosition.y)
             this.lastPosition = newPosition
