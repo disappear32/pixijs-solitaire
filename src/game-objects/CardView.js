@@ -53,49 +53,48 @@ export class CardView extends PIXI.Container {
         this.interactive = bool
         this.buttonMode = bool
 
-        this.on('pointerdown', (event) => {
-            this.onDragStart(event)
-        })
-        this.on('pointermove', (event) => {
-            this.onDragMove(event)
-        })
-        this.on('pointerup', (event) => {
-            this.onDragEnd(event)
-        })
-
+        // this.on('pointerdown', (event) => {
+        //     this.onDragStart(event)
+        // })
+        // this.on('pointermove', (event) => {
+        //     this.onDragMove(event)
+        // })
+        // this.on('pointerup', (event) => {
+        //     this.onDragEnd(event)
+        // })
         this._isOpen = bool
     }
 
-    onDragStart(event) {
-        event.stopPropagation()
+    // onDragStart(event) {
+    //     event.stopPropagation()
 
-        if (this.isOpen) {
+    //     if (this.isOpen) {
         
-            this.prevPosX = this.x
-            this.prevPosY = this.y
+    //         this.prevPosX = this.x
+    //         this.prevPosY = this.y
 
-            this.lastPosition = event.data.getLocalPosition(this.parent)
-        }
-    }
+    //         this.lastPosition = event.data.getLocalPosition(this.parent)
+    //     }
+    // }
 
-    onDragMove(event) {
-        event.stopPropagation()
+    // onDragMove(event) {
+    //     event.stopPropagation()
 
-        if (this.lastPosition) {
+    //     if (this.lastPosition) {
 
-            const newPosition = event.data.getLocalPosition(this.parent)
-            this.x += (newPosition.x - this.lastPosition.x)
-            this.y += (newPosition.y - this.lastPosition.y)
-            this.lastPosition = newPosition
-        }
-    }
+    //         const newPosition = event.data.getLocalPosition(this.parent)
+    //         this.x += (newPosition.x - this.lastPosition.x)
+    //         this.y += (newPosition.y - this.lastPosition.y)
+    //         this.lastPosition = newPosition
+    //     }
+    // }
 
-    onDragEnd() {
-        //this.off("pointermove")
+    // onDragEnd() {
+    //     //this.off("pointermove")
 
-        this.x = this.prevPosX
-        this.y = this.prevPosY
-    }
+    //     this.x = this.prevPosX
+    //     this.y = this.prevPosY
+    // }
 
     dragToCurrentPosition(x, y) {
 

@@ -92,7 +92,54 @@ export class GameScene extends PIXI.Container {
         })
 
         this.startAnimation().then(() => {
+            this.interactive = true
+
+            this.on('pointerdown', (event) => {
+                this.onDragStart(event)
+            })
+            this.on('pointermove', (event) => {
+                this.onDragMove(event)
+            })
+            this.on('pointerup', (event) => {
+                this.onDragEnd(event)
+            })
         })
+    }
+
+    onDragStart(event) {
+        this.dragObj = event.target
+
+        if (this.dragObj.isOpen && this.dragObj instanceof CardView) {
+        
+            this.dragObj.prevPosX = this.dragObj.x
+            this.dragObj.prevPosY = this.dragObj.y
+
+            this.lastPosition = event.data.getLocalPosition(this.parent)
+            this.isDragging = true
+        }
+        console.log(event.data.getLocalPosition(this))
+    }
+
+    onDragMove(event) {
+
+        if (this.lastPosition && this.isDragging) {
+
+            console.log(this.dragObj)
+            console.log(event)
+            const newPosition = event.data.getLocalPosition(this.parent)
+            this.dragObj.x += (newPosition.x - this.lastPosition.x)
+            this.dragObj.y += (newPosition.y - this.lastPosition.y)
+            this.lastPosition = newPosition
+        }
+    }
+
+    onDragEnd() {
+        //this.off("pointermove")
+
+        this.dragObj.x = this.dragObj.prevPosX
+        this.dragObj.y = this.dragObj.prevPosY
+
+        this.isDragging = false
     }
 
     async startAnimation() {
