@@ -30,6 +30,7 @@ export class CardView extends PIXI.Container {
         this.suit = suit
         this.value = value
         this._isOpen = false
+        this.zIndex = 1
 
         gameContainer.addChild(this)
 
@@ -52,56 +53,7 @@ export class CardView extends PIXI.Container {
     set isOpen(bool) {
         this.interactive = bool
         this.buttonMode = bool
-
-        // this.on('pointerdown', (event) => {
-        //     this.onDragStart(event)
-        // })
-        // this.on('pointermove', (event) => {
-        //     this.onDragMove(event)
-        // })
-        // this.on('pointerup', (event) => {
-        //     this.onDragEnd(event)
-        // })
         this._isOpen = bool
-    }
-
-    // onDragStart(event) {
-    //     event.stopPropagation()
-
-    //     if (this.isOpen) {
-        
-    //         this.prevPosX = this.x
-    //         this.prevPosY = this.y
-
-    //         this.lastPosition = event.data.getLocalPosition(this.parent)
-    //     }
-    // }
-
-    // onDragMove(event) {
-    //     event.stopPropagation()
-
-    //     if (this.lastPosition) {
-
-    //         const newPosition = event.data.getLocalPosition(this.parent)
-    //         this.x += (newPosition.x - this.lastPosition.x)
-    //         this.y += (newPosition.y - this.lastPosition.y)
-    //         this.lastPosition = newPosition
-    //     }
-    // }
-
-    // onDragEnd() {
-    //     //this.off("pointermove")
-
-    //     this.x = this.prevPosX
-    //     this.y = this.prevPosY
-    // }
-
-    dragToCurrentPosition(x, y) {
-
-    }
-
-    returnToPreviousPosition() {
-
     }
 
     flipInStak() {
@@ -110,6 +62,23 @@ export class CardView extends PIXI.Container {
 
     flipInDeck() {
 
+    }
+
+    returnToPrevPos() {
+        const tween = new TWEEN.Tween({ x: this.x, y: this.y })
+            .to({ x: this.prevPosX, y: this.prevPosY }, 200)
+            .easing(TWEEN.Easing.Quadratic.InOut)
+            .onStart(() => {
+                this.interactive = false
+            })
+            .onUpdate((object) => {
+                this.x = object.x
+                this.y = object.y
+            })
+            .onComplete(() => {
+                this.interactive = true
+            })
+            .start()
     }
 
     move(to, timeAnim = 100) {
@@ -126,13 +95,7 @@ export class CardView extends PIXI.Container {
     }
 
     flipAndMoveToStackPos(to) {
-        this.cacheAsBitmap = false
-
-        this.front.anchor.set(0.5)
-        this.front.position.set(this.width / 2, this.height / 2)
-
-        this.back.anchor.set(0.5)
-        this.back.position.set(this.width / 2, this.height / 2)
+        this.setSpritesAnchor(0.5)
 
         const animTime = 300
         this.move(to, animTime)
@@ -156,20 +119,29 @@ export class CardView extends PIXI.Container {
             })
             .onComplete(() => {
 
-
-                this.cacheAsBitmap = true
+                this.setSpritesAnchor(0)
             })
             .start()
 
     }
 
-    addToStack(stackId, indexInStack) {
-        this.stackId = stackId
-        this.indexInStack = indexInStack
+    setSpritesAnchor(anchor) {
+        this.front.anchor.set(anchor)
+        this.front.position.set(this.width * anchor, this.height * anchor)
+
+        this.back.anchor.set(anchor)
+        this.back.position.set(this.width * anchor, this.height * anchor)
     }
 
-    addToSlot(slotId, indexInSlot) {
+    addToStack(stackId, indexInStack, isOpen = true) {
+        this.stackId = stackId
+        this.indexInStack = indexInStack
+        this.isOpen = isOpen
+    }
+
+    addToSlot(slotId, indexInSlot, isOpen = true) {
         this.slotId = slotId
         this.indexInSlot = indexInSlot
+        this.isOpen = isOpen
     }
 }

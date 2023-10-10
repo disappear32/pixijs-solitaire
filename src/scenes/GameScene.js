@@ -103,16 +103,19 @@ export class GameScene extends PIXI.Container {
             this.on('pointerup', (event) => {
                 this.onDragEnd(event)
             })
+
+            console.log(this.stacks)
         })
     }
 
     onDragStart(event) {
-        this.dragObj = event.target instanceof CardView ? event.target : () => { return }
+        this.dragObj = event.target
 
         if (this.dragObj.isOpen && this.dragObj instanceof CardView) {
 
             this.dragObj.prevPosX = this.dragObj.x
             this.dragObj.prevPosY = this.dragObj.y
+            this.dragObj.zIndex = 2
 
             this.lastPosition = event.data.getLocalPosition(this.stableGameContainer)
             this.isDragging = true
@@ -120,21 +123,50 @@ export class GameScene extends PIXI.Container {
     }
 
     onDragMove(event) {
-        if (this.lastPosition && this.isDragging) {
+        if (this.isDragging) {
+
             const newPosition = event.data.getLocalPosition(this.stableGameContainer)
+
             this.dragObj.x += (newPosition.x - this.lastPosition.x)
             this.dragObj.y += (newPosition.y - this.lastPosition.y)
+
             this.lastPosition = newPosition
+
+            this.checkWhichStakesInTouch(this.dragObj)
         }
     }
 
     onDragEnd() {
-        //this.off("pointermove")
+        if (this.dragObj.isOpen && this.dragObj instanceof CardView) {
 
-        this.dragObj.x = this.dragObj.prevPosX
-        this.dragObj.y = this.dragObj.prevPosY
+            this.dragObj.returnToPrevPos()
+            this.dragObj.zIndex = 1
+        }
 
         this.isDragging = false
+    }
+
+    checkWhichStakesInTouch(card) {
+        const cardMiddleX = card.x + card.width / 2
+        const cardMiddleY = card.y + card.height / 2
+
+        this.stacks.forEach((stack) => {
+            if (
+                card.stackId != stack.id &&
+                cardMiddleX >= stack.x &&
+                cardMiddleX <= stack.x + stack.width &&
+                cardMiddleY >= stack.y &&
+                cardMiddleY <= stack.y + stack.height
+            ) {
+                console.log('show')
+                stack.showBorder()
+            } 
+            else {
+                
+                console.log('remove')
+                stack.removeBorder()
+            }
+        })
     }
 
     async startAnimation() {
@@ -175,6 +207,7 @@ export class GameScene extends PIXI.Container {
         const stableGameContainer = new PIXI.Container()
         stableGameContainer.x = 0
         stableGameContainer.y = (Manager.gameArea.maxHeight - Manager.gameArea.minHeight) / 2
+        stableGameContainer.sortableChildren = true
         this.adaptiveContainer.addChild(stableGameContainer)
 
         //Дергаем ресайз, чтобы все расставилось как надо по вьюпорту
