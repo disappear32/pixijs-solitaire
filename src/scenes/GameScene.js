@@ -77,23 +77,27 @@ export class GameScene extends PIXI.Container {
     }
 
     startGame() {
-        let countCardsInStacks = 0
+        // let countCardsInStacks = 0
+        // this.stacks.forEach((stack) => {
+        //     for (let cardIndex = 0; cardIndex < stack.initLenght; cardIndex++) {
 
-        this.stacks.forEach((stack) => {
-            for (let cardIndex = 0; cardIndex < stack.initLenght; cardIndex++) {
+        //         const isOpen = cardIndex == stack.initLenght - 1 ? true : false
+        //         const card = this.cards[countCardsInStacks]
+        //         stack.addCard(card, isOpen)
+        //         countCardsInStacks++
+        //     }
+        // })
 
-                const isOpen = cardIndex == stack.initLenght - 1 ? true : false
-                const card = this.cards[countCardsInStacks]
-                stack.addCard(card, isOpen)
-                countCardsInStacks++
-            }
-        })
-        
-        const deckCards = this.cards.filter(card => !(card.isStackCard || card.isSlotCard))
 
-        deckCards.forEach((card) => {
+        // const deckCards = this.cards.filter(card => !(card.isStackCard || card.isSlotCard))
+        // deckCards.forEach((card) => {
+        //     this.deck.addCard(card)
+        // })
+
+        this.cards.forEach((card) => {
             this.deck.addCard(card)
         })
+
 
         this.startAnimation().then(() => {
             this.interactive = true
@@ -107,8 +111,6 @@ export class GameScene extends PIXI.Container {
             this.on('pointerup', (event) => {
                 this.onDragEnd(event)
             })
-
-            console.log(this.stacks)
         })
     }
 
@@ -119,18 +121,21 @@ export class GameScene extends PIXI.Container {
             const card = this.dragObj
 
             if (card.isStackCard && card.isOpen) {
-    
+
                 card.prevPosX = this.dragObj.x
                 card.prevPosY = this.dragObj.y
                 card.zIndex = 2
-    
+
                 this.lastPointerPosition = event.data.getLocalPosition(this.stableGameContainer)
                 this.isDragging = true
             }
 
             if (card.isDeckCard) {
-                console.log('done')
-                card.flipInDeck()
+                if (card.isOpen) {
+                    this.lastPointerPosition = event.data.getLocalPosition(this.stableGameContainer)
+                    this.isDragging = true
+                }
+                else card.flipInDeck()
             }
         }
     }
@@ -151,18 +156,24 @@ export class GameScene extends PIXI.Container {
     }
 
     onDragEnd() {
-        if (this.dragObj.isOpen && this.dragObj instanceof CardView) {
-            const activeStacks = this.stacks.filter(stack => stack.isActive)
-            const activeStack = activeStacks[0]
+        if (this.dragObj instanceof CardView) {
+            const card = this.dragObj
 
-            if (activeStack) {
-                activeStack.hideBorder()
-                this.stacks[this.dragObj.stackId].removeCard()
-                activeStack.addCard(this.dragObj)
+            if (card.isOpen) {
+                const nextStacks = this.stacks.filter(stack => stack.isActive)
+                const nextStack = nextStacks[0]
+
+                if (nextStack) {
+                    const prevStack = this.stacks[card.stackId]
+
+                    nextStack.hideBorder()
+                    prevStack.removeCard(card)
+                    nextStack.addCard(card)
+                }
+
+                card.returnToInitialPos()
+                card.zIndex = 1
             }
-
-            this.dragObj.returnToInitialPos()
-            this.dragObj.zIndex = 1
         }
 
         this.isDragging = false
@@ -193,16 +204,34 @@ export class GameScene extends PIXI.Container {
     }
 
     async startAnimation() {
+        let deckCardCount = 0
+        const emptyArrayOfEmptyCards = []
+
         for (const stack of this.stacks) {
-            for (const card of stack.cards) {
+
+            emptyArrayOfEmptyCards.push(deckCardCount)
+
+            for (const emptyCard of emptyArrayOfEmptyCards) {
                 await new Promise(resolve => {
                     setTimeout(() => {
-                        const cardNextPos = stack.getCardPositionByIndex(card.indexInStack)
 
-                        if (card.isOpen) card.flipAndMoveToStackPos(cardNextPos)
-                        else card.move(cardNextPos)
+                        const card = this.cards[deckCardCount]
+                        const deck = this.deck
+                        const indexInStack = emptyArrayOfEmptyCards.indexOf(emptyCard)
+                        const isOpen = indexInStack == stack.initLenght - 1 ? true : false
+
+                        deck.removeCard(card)
+
+                        const cardNextPos = stack.getCardPositionByIndex(indexInStack)
+
+                        const moveAnim = () => isOpen ? card.flipAndMoveToStackPos(cardNextPos) : card.move(cardNextPos)
+                        moveAnim()
+
+                        stack.addCard(card, isOpen)
+                        deckCardCount++
 
                         resolve()
+
                     }, 100)
                 })
             }

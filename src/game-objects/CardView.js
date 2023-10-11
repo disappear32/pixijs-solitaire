@@ -80,6 +80,7 @@ export class CardView extends PIXI.Container {
                 faceSprite = this.front
             })
             .onComplete(() => {
+                this.isOpen = true
             })
             .start()
     }
@@ -87,7 +88,7 @@ export class CardView extends PIXI.Container {
     flipAndMoveToStackPos(to) {
         this.setSpritesAnchor(0.5)
 
-        const animTime = 300
+        const animTime = 100
         this.move(to, animTime)
 
         let faceSprite = this.back
@@ -108,8 +109,9 @@ export class CardView extends PIXI.Container {
                 faceSprite = this.front
             })
             .onComplete(() => {
-
                 this.setSpritesAnchor(0)
+
+                this.isOpen = true
             })
             .start()
 
@@ -121,7 +123,7 @@ export class CardView extends PIXI.Container {
         const tween = new TWEEN.Tween(from)
             .to(to, timeAnim)
             .easing(TWEEN.Easing.Quadratic.InOut)
-            .onUpdate(() => {
+            .onUpdate((obj) => {
                 this.x = from.x
                 this.y = from.y
             })
@@ -151,34 +153,5 @@ export class CardView extends PIXI.Container {
 
         this.back.anchor.set(anchor)
         this.back.position.set(this.width * anchor, this.height * anchor)
-    }
-
-    addToDeck(pos, indexInDeck, isOpen = false) {
-        this.indexInDeck = indexInDeck
-        this.isOpen = isOpen
-        this.interactive = true
-
-        this.initPosX = pos.x
-        this.initPosY = pos.y
-
-        this.x = pos.x
-        this.y = pos.y
-
-        this.isDeckCard = true
-    }
-
-    addToStack(pos, stackId, indexInStack, isOpen = true) {
-        this.stackId = stackId
-        this.indexInStack = indexInStack
-        this.isOpen = isOpen
-        this.interactive = isOpen
-
-        this.initPosX = pos.x
-        this.initPosY = pos.y
-
-        this.isStackCard = true
-    }
-
-    addToSlot(slotId, indexInSlot, isOpen = true) {
     }
 }

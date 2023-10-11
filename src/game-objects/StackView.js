@@ -53,13 +53,25 @@ export class StackView {
         this.cards.push(card)
         this.updateHeight()
 
-        const stackId = this.id
-        const cardIndexInStack = this.cards.indexOf(card)
-        const cardPos = this.getCardPositionByIndex(cardIndexInStack)
-        card.addToStack(cardPos, stackId, cardIndexInStack, isOpen)
+        card.stackId = this.id
+        card.indexInStack = this.cards.indexOf(card)
+        card.isStackCard = true
+
+        card.isOpen = isOpen
+        card.interactive = isOpen
+
+        const cardPos = this.getCardPositionByIndex(card.indexInStack)
+        card.initPosX = cardPos.x
+        card.initPosY = cardPos.y
+        // card.x = cardPos.x
+        // card.y = cardPos.y
     }
 
-    removeCard() {
+    removeCard(card) {
+        card.isStackCard = false
+        card.indexInStack = undefined
+        card.stackId = undefined
+
         this.cards.pop()
         this.updateHeight()
     }

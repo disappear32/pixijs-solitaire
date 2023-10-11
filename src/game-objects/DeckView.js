@@ -28,10 +28,24 @@ export class DeckView {
 
     addCard(card) {
         this.cards.push(card)
+        
+        card.indexInDeck = this.cards.indexOf(card)
+        card.isDeckCard = true
 
-        const cardIndexInDeck = this.cards.indexOf(card)
-        const cardPos = { x: this.x, y: this.y }
-        card.addToDeck(cardPos, cardIndexInDeck, false)
+        card.isOpen = false
+        card.interactive = true
+
+        card.initPosX = this.x
+        card.initPosY = this.y
+        card.x = this.x
+        card.y = this.y
+    }
+
+    removeCard(card) {
+        card.isDeckCard = false
+        card.indexInDeck = undefined
+
+        this.cards.pop()
     }
 
     dealCards() {
