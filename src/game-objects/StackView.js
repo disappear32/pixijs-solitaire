@@ -14,6 +14,13 @@ export class StackView {
 
     parent
 
+    border
+    isActive
+
+    static lineSize = 2
+    static borderRadius = 5
+    static minHeight
+
     constructor(gameContainer, x, y, id, initLenght, cardSize) {
         this.x = x
         this.y = y
@@ -25,6 +32,17 @@ export class StackView {
         this.cards = []
         this.initLenght = initLenght
         this.parent = gameContainer
+        StackView.minHeight = cardSize.height
+
+        
+        const borderX = this.x - StackView.lineSize
+        const borderY = this.y - StackView.lineSize
+        const borderWidth = this.width + StackView.lineSize * 2
+        const borderHeight = this.height + StackView.lineSize * 2
+        const borderRadius = StackView.borderRadius
+
+        this.createBorder(borderX, borderY, borderWidth, borderHeight, borderRadius)
+        this.hideBorder()
     }
 
     get length() {
@@ -33,42 +51,54 @@ export class StackView {
 
     addCard(card, isOpen = true) {
         this.cards.push(card)
-        this.updateStackHeight()
+        this.updateHeight()
 
         const stackId = this.id
         const cardIndexInStack = this.cards.indexOf(card)
-        card.addToStack(stackId, cardIndexInStack, isOpen)
+        const cardPos = this.getCardPositionByIndex(cardIndexInStack)
+        card.addToStack(cardPos, stackId, cardIndexInStack, isOpen)
     }
 
-    updateStackHeight() {
-        this.height = (this.cards.length - 1) * this.cardGapY + this.cardSize.height
+    removeCard() {
+        this.cards.pop()
+        this.updateHeight()
     }
 
-    showBorder() {
-        if (this.border) return 
+    updateHeight() {
+        this.height = Math.max((this.cards.length - 1) * this.cardGapY + this.cardSize.height, StackView.minHeight)
 
-        const lineSize = 2
+        this.updateBorderHeight()
+    }
+
+    createBorder(borderX, borderY, borderWidth, borderHeight, borderRadius) {
+        if (this.border) this.border.destroy()
 
         this.border = new PIXI.Graphics()
         this.border.beginFill(0xFF3300)
-        this.border.drawRoundedRect(this.x - lineSize, this.y - lineSize, this.width + lineSize * 2, this.height + lineSize * 2, 5)
+        this.border.drawRoundedRect(borderX, borderY, borderWidth, borderHeight, borderRadius)
         this.border.endFill()
-
+        this.border.visible = false
         this.parent.addChild(this.border)
     }
 
-    removeBorder() {
-        console.log(this.border)
-        if (this.border) this.border.destroy()
+    updateBorderHeight() {
+        const borderX = this.x - StackView.lineSize
+        const borderY = this.y - StackView.lineSize
+        const borderWidth = this.width + StackView.lineSize * 2
+        const borderHeight = Math.max(this.height + StackView.lineSize * 2, StackView.minHeight)
+        const borderRadius = StackView.borderRadius
 
+        this.createBorder(borderX, borderY, borderWidth, borderHeight, borderRadius)
     }
 
-    removeCard(card) {
-
+    showBorder() {
+        this.isActive = true
+        this.border.visible = true
     }
 
-    checkIntersection(card) {
-
+    hideBorder() {
+        this.isActive = false
+        this.border.visible = false
     }
 
     getCardPositionByIndex(index) {

@@ -73,22 +73,26 @@ export class GameScene extends PIXI.Container {
             this.cards.push(card)
         })
 
-        this.deck.addCard(this.cards)
-
         this.startGame()
     }
 
     startGame() {
-        let cardCount = 0
+        let countCardsInStacks = 0
 
         this.stacks.forEach((stack) => {
             for (let cardIndex = 0; cardIndex < stack.initLenght; cardIndex++) {
 
                 const isOpen = cardIndex == stack.initLenght - 1 ? true : false
-                const card = this.cards[cardCount]
+                const card = this.cards[countCardsInStacks]
                 stack.addCard(card, isOpen)
-                cardCount++
+                countCardsInStacks++
             }
+        })
+        
+        const deckCards = this.cards.filter(card => !(card.isStackCard || card.isSlotCard))
+
+        deckCards.forEach((card) => {
+            this.deck.addCard(card)
         })
 
         this.startAnimation().then(() => {
@@ -111,60 +115,79 @@ export class GameScene extends PIXI.Container {
     onDragStart(event) {
         this.dragObj = event.target
 
-        if (this.dragObj.isOpen && this.dragObj instanceof CardView) {
+        if (this.dragObj instanceof CardView) {
+            const card = this.dragObj
 
-            this.dragObj.prevPosX = this.dragObj.x
-            this.dragObj.prevPosY = this.dragObj.y
-            this.dragObj.zIndex = 2
+            if (card.isStackCard && card.isOpen) {
+    
+                card.prevPosX = this.dragObj.x
+                card.prevPosY = this.dragObj.y
+                card.zIndex = 2
+    
+                this.lastPointerPosition = event.data.getLocalPosition(this.stableGameContainer)
+                this.isDragging = true
+            }
 
-            this.lastPosition = event.data.getLocalPosition(this.stableGameContainer)
-            this.isDragging = true
+            if (card.isDeckCard) {
+                console.log('done')
+                card.flipInDeck()
+            }
         }
     }
 
     onDragMove(event) {
         if (this.isDragging) {
+            const card = this.dragObj
 
-            const newPosition = event.data.getLocalPosition(this.stableGameContainer)
+            const newPointerPosition = event.data.getLocalPosition(this.stableGameContainer)
 
-            this.dragObj.x += (newPosition.x - this.lastPosition.x)
-            this.dragObj.y += (newPosition.y - this.lastPosition.y)
+            card.x += (newPointerPosition.x - this.lastPointerPosition.x)
+            card.y += (newPointerPosition.y - this.lastPointerPosition.y)
 
-            this.lastPosition = newPosition
+            this.lastPointerPosition = newPointerPosition
 
-            this.checkWhichStakesInTouch(this.dragObj)
+            this.checkCardForContact(card)
         }
     }
 
     onDragEnd() {
         if (this.dragObj.isOpen && this.dragObj instanceof CardView) {
+            const activeStacks = this.stacks.filter(stack => stack.isActive)
+            const activeStack = activeStacks[0]
 
-            this.dragObj.returnToPrevPos()
+            if (activeStack) {
+                activeStack.hideBorder()
+                this.stacks[this.dragObj.stackId].removeCard()
+                activeStack.addCard(this.dragObj)
+            }
+
+            this.dragObj.returnToInitialPos()
             this.dragObj.zIndex = 1
         }
 
         this.isDragging = false
     }
 
-    checkWhichStakesInTouch(card) {
-        const cardMiddleX = card.x + card.width / 2
-        const cardMiddleY = card.y + card.height / 2
+    checkCardForContact(card) {
+        const maskCardGapX = 25
+        const maskCardGapY = 40
+        const maskCardLeftX = card.x + maskCardGapX
+        const maskCardRightX = card.x + card.width - maskCardGapX
+        const maskCardTopY = card.y + maskCardGapY
+        const maskCardbottomY = card.y + card.height - maskCardGapY
 
         this.stacks.forEach((stack) => {
             if (
                 card.stackId != stack.id &&
-                cardMiddleX >= stack.x &&
-                cardMiddleX <= stack.x + stack.width &&
-                cardMiddleY >= stack.y &&
-                cardMiddleY <= stack.y + stack.height
+                maskCardLeftX >= stack.x &&
+                maskCardRightX <= stack.x + stack.width &&
+                maskCardTopY >= stack.y &&
+                maskCardbottomY <= stack.y + stack.height
             ) {
-                console.log('show')
                 stack.showBorder()
-            } 
+            }
             else {
-                
-                console.log('remove')
-                stack.removeBorder()
+                stack.hideBorder()
             }
         })
     }
@@ -230,7 +253,10 @@ export class GameScene extends PIXI.Container {
                 const valueKey = j
 
                 map.set(cardKey, {
-                    suit: suitsMap.get(suitKey).name,
+                    suit: {
+                        name: suitsMap.get(suitKey).name,
+                        id: suitKey
+                    },
                     name: valuesMap.get(valueKey).name + '_' + suitsMap.get(suitKey).name,
                     value: valuesMap.get(valueKey).value
                 })

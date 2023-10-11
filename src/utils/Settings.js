@@ -1,8 +1,8 @@
 const settings = {
     suits: new Map([
         [0, { name: 'diamond', color: '0xFF0000' }],
-        [1, { name: 'heart', color: '0xFF0000' }],
-        [2, { name: 'spade', color: '0x000000' }],
+        [1, { name: 'spade', color: '0x000000' }],
+        [2, { name: 'heart', color: '0xFF0000' }],
         [3, { name: 'club', color: '0x000000' }]
     ]),
     values: new Map([

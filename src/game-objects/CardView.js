@@ -11,13 +11,17 @@ export class CardView extends PIXI.Container {
     stackId
     slotId
 
-    _isOpen
+    isDeckCard
+    isSlotCard
+    isStackCard
+
+    isOpen
 
     indexInStack
     indexInSlot
 
-    prevPosX
-    prevPosY
+    initPosX
+    initPosY
 
     constructor(gameContainer, x, y, width, height, name, suit, value) {
         super()
@@ -29,8 +33,12 @@ export class CardView extends PIXI.Container {
         this.name = name
         this.suit = suit
         this.value = value
-        this._isOpen = false
+        this.isOpen = false
         this.zIndex = 1
+        
+        this.isDeckCard = false
+        this.isSlotCard = false
+        this.isStackCard = false
 
         gameContainer.addChild(this)
 
@@ -46,50 +54,32 @@ export class CardView extends PIXI.Container {
         this.addChild(this.front, this.back)
     }
 
-    get isOpen() {
-        return this._isOpen
-    }
-
-    set isOpen(bool) {
-        this.interactive = bool
-        this.buttonMode = bool
-        this._isOpen = bool
-    }
-
     flipInStak() {
 
     }
 
     flipInDeck() {
+        const animTime = 300
+        this.move({ x: this.x - this.width - 5, y: this.y }, animTime)
 
-    }
-
-    returnToPrevPos() {
-        const tween = new TWEEN.Tween({ x: this.x, y: this.y })
-            .to({ x: this.prevPosX, y: this.prevPosY }, 200)
-            .easing(TWEEN.Easing.Quadratic.InOut)
-            .onStart(() => {
-                this.interactive = false
-            })
+        let faceSprite = this.back
+        const tween = new TWEEN.Tween({ scaleX: 1 })
+            .to({ scaleX: 0 }, animTime / 2)
+            .repeat(1)
+            .yoyo(true)
             .onUpdate((object) => {
-                this.x = object.x
-                this.y = object.y
+                faceSprite.setTransform(0, 0, object.scaleX)
+            })
+            .onRepeat(() => {
+                this.front.setTransform(0, 0, 0.001)
+                this.front.visible = true
+
+                this.back.visible = false
+                this.back.setTransform(0, 0, 1)
+
+                faceSprite = this.front
             })
             .onComplete(() => {
-                this.interactive = true
-            })
-            .start()
-    }
-
-    move(to, timeAnim = 100) {
-        const from = { x: this.x, y: this.y }
-
-        const tween = new TWEEN.Tween(from)
-            .to(to, timeAnim)
-            .easing(TWEEN.Easing.Quadratic.InOut)
-            .onUpdate(() => {
-                this.x = from.x
-                this.y = from.y
             })
             .start()
     }
@@ -125,6 +115,36 @@ export class CardView extends PIXI.Container {
 
     }
 
+    move(to, timeAnim = 100) {
+        const from = { x: this.x, y: this.y }
+
+        const tween = new TWEEN.Tween(from)
+            .to(to, timeAnim)
+            .easing(TWEEN.Easing.Quadratic.InOut)
+            .onUpdate(() => {
+                this.x = from.x
+                this.y = from.y
+            })
+            .start()
+    }
+
+    returnToInitialPos() {
+        const tween = new TWEEN.Tween({ x: this.x, y: this.y })
+            .to({ x: this.initPosX, y: this.initPosY }, 200)
+            .easing(TWEEN.Easing.Quadratic.InOut)
+            .onStart(() => {
+                this.interactive = false
+            })
+            .onUpdate((object) => {
+                this.x = object.x
+                this.y = object.y
+            })
+            .onComplete(() => {
+                this.interactive = true
+            })
+            .start()
+    }
+
     setSpritesAnchor(anchor) {
         this.front.anchor.set(anchor)
         this.front.position.set(this.width * anchor, this.height * anchor)
@@ -133,15 +153,32 @@ export class CardView extends PIXI.Container {
         this.back.position.set(this.width * anchor, this.height * anchor)
     }
 
-    addToStack(stackId, indexInStack, isOpen = true) {
+    addToDeck(pos, indexInDeck, isOpen = false) {
+        this.indexInDeck = indexInDeck
+        this.isOpen = isOpen
+        this.interactive = true
+
+        this.initPosX = pos.x
+        this.initPosY = pos.y
+
+        this.x = pos.x
+        this.y = pos.y
+
+        this.isDeckCard = true
+    }
+
+    addToStack(pos, stackId, indexInStack, isOpen = true) {
         this.stackId = stackId
         this.indexInStack = indexInStack
         this.isOpen = isOpen
+        this.interactive = isOpen
+
+        this.initPosX = pos.x
+        this.initPosY = pos.y
+
+        this.isStackCard = true
     }
 
     addToSlot(slotId, indexInSlot, isOpen = true) {
-        this.slotId = slotId
-        this.indexInSlot = indexInSlot
-        this.isOpen = isOpen
     }
 }

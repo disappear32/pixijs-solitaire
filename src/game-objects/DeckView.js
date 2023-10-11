@@ -4,6 +4,8 @@ export class DeckView {
     width
     height
 
+    initLength
+
     cards
     length
 
@@ -12,7 +14,9 @@ export class DeckView {
         this.y = 45
         this.width = cardSize.width
         this.height = cardSize.height
+        this.cards = []
         this.length = 0
+        this.initLength = 24
 
         const background = PIXI.Sprite.from('reboot_deck')
         background.x = this.x
@@ -22,23 +26,12 @@ export class DeckView {
         gameContainer.addChild(background)
     }
 
-    addCard(args) {
+    addCard(card) {
+        this.cards.push(card)
 
-        if (args instanceof Array) {
-            const arrayCards = arguments[0]
-
-            arrayCards.forEach((card) => {
-                card.x = this.x
-                card.y = this.y
-            }) 
-        }
-        
-        if (args instanceof Object) {
-            const card = arguments[0]
-            
-            card.x = this.x
-            card.y = this.y
-        }
+        const cardIndexInDeck = this.cards.indexOf(card)
+        const cardPos = { x: this.x, y: this.y }
+        card.addToDeck(cardPos, cardIndexInDeck, false)
     }
 
     dealCards() {
