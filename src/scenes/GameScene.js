@@ -80,7 +80,7 @@ export class GameScene extends PIXI.Container {
     }
 
     startGame() {
-        this.cards.forEach((card) => {
+        this.cards.forEach(card => {
             card.x = this.deck.x
             card.y = this.deck.y
             this.deck.addCard(card)
@@ -123,6 +123,27 @@ export class GameScene extends PIXI.Container {
 
                     }, 100)
                 })
+            }
+        }
+    }
+
+    async moveAllCardsToDeck() {
+
+        for (const stack of this.stacks) {
+            let isOpen = true
+
+            for (let i = stack.length - 1; i >= 0; i--) {
+                const card = stack.cards[i]
+
+                stack.removeCard(false)
+                this.deck.addCard(card, isOpen)
+
+                console.log(card.name, card.isOpen)
+
+                if (isOpen) await card.flipAndMoveToInitialPos()
+                else await card.moveToInitialPos()
+
+                isOpen = false
             }
         }
     }
@@ -198,6 +219,7 @@ export class GameScene extends PIXI.Container {
             if (this.dragObj instanceof SubmitButtonView) {
                 this.submitButton.pressAnimation()
                 this.moveAllCardsToDeck()
+                this.submitButton.hide()
             }
             if (this.dragObj instanceof CollectButtonView) {
                 this.collectButton.pressAnimation()
@@ -423,20 +445,6 @@ export class GameScene extends PIXI.Container {
 
         const helpArray = new Array(countOfStackCard)
         for (const card of helpArray) await autoMoveCard()
-    }
-
-    async moveAllCardsToDeck() {
-
-        for (const stack of this.stacks) {
-            for (const card of stack.cards) {
-
-                stack.removeCard(false)
-                this.deck.addCard(card)
-
-                if (card.isOpen) await card.flipAndMoveToInitialPos()
-                else await card.moveToInitialPos()
-            }
-        }
     }
 
     createAdaptiveContainer() {
