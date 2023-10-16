@@ -27,7 +27,7 @@ export class DeckView extends PIXI.Sprite {
         this.cards.push(card)
 
         card.isOpen = isOpen
-        card.interactive = isOpen
+        card.interactive = true
         card.holder = this
         card.initZindex = this.length
 
