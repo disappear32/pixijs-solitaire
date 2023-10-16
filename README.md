@@ -1,1 +1,1 @@
-# 21-pixi-game
+# solitaire-pixi-game
