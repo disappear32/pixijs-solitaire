@@ -6,22 +6,22 @@ const settings = {
         [3, { name: 'club', color: '0x000000' }]
     ]),
     values: new Map([
-        [0, { name: '2', value: 2 }],
-        [1, { name: '3', value: 3 }],
-        [2, { name: '4', value: 4 }],
-        [3, { name: '5', value: 5 }],
-        [4, { name: '6', value: 6 }],
-        [5, { name: '7', value: 7 }],
-        [6, { name: '8', value: 8 }],
-        [7, { name: '9', value: 9 }],
-        [8, { name: '10', value: 10 }],
-        [9, { name: 'J', value: 11 }],
-        [10, { name: 'Q', value: 12 }],
-        [11, { name: 'K', value: 13 }],
-        [12, { name: 'A', value: 14 }]
+        [0, { name: 'A', value: 1 }],
+        [1, { name: '2', value: 2 }],
+        [2, { name: '3', value: 3 }],
+        [3, { name: '4', value: 4 }],
+        [4, { name: '5', value: 5 }],
+        [5, { name: '6', value: 6 }],
+        [6, { name: '7', value: 7 }],
+        [7, { name: '8', value: 8 }],
+        [8, { name: '9', value: 9 }],
+        [9, { name: '10', value: 10 }],
+        [10, { name: 'J', value: 11 }],
+        [11, { name: 'Q', value: 12 }],
+        [12, { name: 'K', value: 13 }]
     ]),
     cardSize: {
-        width: 45,
+        width: 48,
         height: 70
     }
 }

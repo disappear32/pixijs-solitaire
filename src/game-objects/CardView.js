@@ -1,157 +1,156 @@
-export class CardView extends PIXI.Container {
-    width
-    height
+import { StackView } from "./StackView.js"
+import { SlotView } from "./SlotView.js"
+import { DeckView } from "./DeckView.js"
+import { OpenDeckView } from "./OpenDeckView.js"
 
+export class CardView extends PIXI.Sprite {
     name
-    suit
+    suitName
+    suitId
     value
 
-    flipState
+    frontTexture
+    backTexture
 
-    stackId
-    slotId
-
-    isDeckCard
-    isSlotCard
-    isStackCard
+    holder
 
     isOpen
 
-    indexInStack
-    indexInSlot
-
     initPosX
     initPosY
+    initZindex
 
-    constructor(gameContainer, x, y, width, height, name, suit, value) {
-        super()
+    constructor(gameContainer, x, y, cardSize, name, suitName, suitId, value) {
+        super(PIXI.Texture.from('card_back'))
 
         this.x = x
         this.y = y
-        this.width = width
-        this.height = height
+        this.width = cardSize.width
+        this.height = cardSize.height
         this.name = name
-        this.suit = suit
+        this.suitName = suitName
+        this.suitId = suitId
         this.value = value
         this.isOpen = false
         this.zIndex = 1
-        
-        this.isDeckCard = false
-        this.isSlotCard = false
-        this.isStackCard = false
+
+        this.frontTexture = PIXI.Texture.from(this.name)
+        this.backTexture = PIXI.Texture.from('card_back')
 
         gameContainer.addChild(this)
-
-        this.front = PIXI.Sprite.from(this.name)
-        this.front.width = this.width
-        this.front.height = this.height
-        this.front.visible = false
-
-        this.back = PIXI.Sprite.from('card_back')
-        this.back.width = this.width
-        this.back.height = this.height
-
-        this.addChild(this.front, this.back)
     }
 
-    flipInStak() {
+    get indexInHolder() {
+        if (this.isDeckCard || this.isOpenDeckCard || this.isSlotCard || this.isStackCard) return this.holder.cards.indexOf(this)
 
+        return undefined
     }
 
-    flipInDeck() {
-        const animTime = 300
-        this.move({ x: this.x - this.width - 5, y: this.y }, animTime)
+    get holderId() {
+        if (this.isStackCard || this.isSlotCard) return this.holder.id
+        if (this.isDeckCard) return 7
+        if (this.isOpenDeckCard) return 8
 
-        let faceSprite = this.back
-        const tween = new TWEEN.Tween({ scaleX: 1 })
-            .to({ scaleX: 0 }, animTime / 2)
+        return undefined
+    }
+
+    get isDeckCard() {
+        if (this.holder instanceof DeckView) return true
+
+        return false
+    }
+    get isOpenDeckCard() {
+        if (this.holder instanceof OpenDeckView) return true
+
+        return false
+    }
+    get isSlotCard() {
+        if (this.holder instanceof SlotView) return true
+
+        return false
+    }
+    get isStackCard() {
+        if (this.holder instanceof StackView) return true
+
+        return false
+    }
+
+
+    async flipInStak(animTime = 200) {
+        const deg = -5
+
+        this.rotate(deg, animTime / 2)
+            .flip(animTime, 0.5)
+    }
+
+    async flipAndMoveToInitialPos(animTime = 100, easing = TWEEN.Easing.Quadratic.InOut) {
+
+        this.flip(animTime)
+        this.moveToInitialPos(animTime, easing)
+    }
+
+    async flip(animTime = 200, anchor = 0) {
+        return new Promise(resolve => {
+            this.anchor.set(anchor)
+            this.x += this.width * anchor
+            this.y += this.height * anchor
+
+            const tween = new TWEEN.Tween({ scaleX: 1 })
+                .to({ scaleX: 0 }, animTime / 2)
+                .repeat(1)
+                .yoyo(true)
+                .onStart(() => { this.interactive = false })
+                .onUpdate(from => { this.setTransform(this.x, this.y, from.scaleX) })
+                .onRepeat(() => {
+                    this.changeTexture()
+                    this.setTransform(this.x, this.y, 0.001)
+                })
+                .onComplete(() => {
+                    this.interactive = true
+
+                    this.anchor.set(0)
+                    this.x -= this.width * anchor
+                    this.y -= this.height * anchor
+
+                    resolve()
+                })
+                .start()
+        })
+    }
+
+    rotate(deg, animTime = 100) {
+        const tween = new TWEEN.Tween({ deg: 0 })
+            .to({ deg: deg }, animTime)
             .repeat(1)
             .yoyo(true)
-            .onUpdate((object) => {
-                faceSprite.setTransform(0, 0, object.scaleX)
-            })
-            .onRepeat(() => {
-                this.front.setTransform(0, 0, 0.001)
-                this.front.visible = true
-
-                this.back.visible = false
-                this.back.setTransform(0, 0, 1)
-
-                faceSprite = this.front
-            })
-            .onComplete(() => {
-                this.isOpen = true
-            })
-            .start()
-    }
-
-    flipAndMoveToStackPos(to) {
-        this.setSpritesAnchor(0.5)
-
-        const animTime = 100
-        this.move(to, animTime)
-
-        let faceSprite = this.back
-        const tween = new TWEEN.Tween({ scaleX: 1 })
-            .to({ scaleX: 0 }, animTime / 2)
-            .repeat(1)
-            .yoyo(true)
-            .onUpdate((object) => {
-                faceSprite.setTransform(this.width / 2, this.height / 2, object.scaleX)
-            })
-            .onRepeat(() => {
-                this.front.setTransform(this.width / 2, this.height / 2, 0.001)
-                this.front.visible = true
-
-                this.back.visible = false
-                this.back.setTransform(this.width / 2, this.height / 2, 1)
-
-                faceSprite = this.front
-            })
-            .onComplete(() => {
-                this.setSpritesAnchor(0)
-
-                this.isOpen = true
-            })
+            .onUpdate(from => { this.angle = from.deg })
             .start()
 
+        return this
     }
 
-    move(to, timeAnim = 100) {
-        const from = { x: this.x, y: this.y }
-
-        const tween = new TWEEN.Tween(from)
-            .to(to, timeAnim)
-            .easing(TWEEN.Easing.Quadratic.InOut)
-            .onUpdate((obj) => {
+    async moveToInitialPos(animTime = 200, easing = TWEEN.Easing.Quadratic.InOut) {
+        return new Promise(resolve => {
+            const tween = new TWEEN.Tween({ x: this.x, y: this.y })
+            .to({ x: this.initPosX, y: this.initPosY }, animTime)
+            .easing(easing)
+            .onStart(() => { this.interactive = false })
+            .onUpdate(from => {
                 this.x = from.x
                 this.y = from.y
             })
-            .start()
-    }
-
-    returnToInitialPos() {
-        const tween = new TWEEN.Tween({ x: this.x, y: this.y })
-            .to({ x: this.initPosX, y: this.initPosY }, 200)
-            .easing(TWEEN.Easing.Quadratic.InOut)
-            .onStart(() => {
-                this.interactive = false
-            })
-            .onUpdate((object) => {
-                this.x = object.x
-                this.y = object.y
-            })
             .onComplete(() => {
                 this.interactive = true
+                this.zIndex = this.initZindex
+                
+                resolve()
             })
             .start()
+        })
     }
 
-    setSpritesAnchor(anchor) {
-        this.front.anchor.set(anchor)
-        this.front.position.set(this.width * anchor, this.height * anchor)
-
-        this.back.anchor.set(anchor)
-        this.back.position.set(this.width * anchor, this.height * anchor)
+    changeTexture() {
+        if (this.texture == this.frontTexture) this.texture = this.backTexture
+        else this.texture = this.frontTexture
     }
 }

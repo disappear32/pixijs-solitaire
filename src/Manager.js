@@ -1,7 +1,6 @@
 export class Manager {
     constructor() { }
     app
-    parentContainer
     currentScene
 
     canvasArea
@@ -10,7 +9,11 @@ export class Manager {
     currResizeStageId
     RESIZE_STAGE
 
+    docElement
+    parentContainer
+
     static initialize(width, minHeight, maxHeight, backColor) {
+        Manager.docElement = document.documentElement
         Manager.parentContainer = document.getElementById("game-container")
         Manager.app = new PIXI.Application({
             view: document.getElementById("game"),
@@ -98,6 +101,8 @@ export class Manager {
 
             Manager.currResizeStageId = RESIZE_STAGE.MIN
         }
+
+        Manager.docElement.style.setProperty("--app-height", `${viewportHeight}px`)
 
         Manager.parentContainer.style.setProperty("width", `${canvasWidth}px`)
         Manager.parentContainer.style.setProperty("height", `${canvasHeight}px`)

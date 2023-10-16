@@ -34,15 +34,7 @@ export class StackView {
         this.parent = gameContainer
         StackView.minHeight = cardSize.height
 
-        
-        const borderX = this.x - StackView.lineSize
-        const borderY = this.y - StackView.lineSize
-        const borderWidth = this.width + StackView.lineSize * 2
-        const borderHeight = this.height + StackView.lineSize * 2
-        const borderRadius = StackView.borderRadius
-
-        this.createBorder(borderX, borderY, borderWidth, borderHeight, borderRadius)
-        this.hideBorder()
+        this.createBorder() 
     }
 
     get length() {
@@ -53,27 +45,30 @@ export class StackView {
         this.cards.push(card)
         this.updateHeight()
 
-        card.stackId = this.id
-        card.indexInStack = this.cards.indexOf(card)
-        card.isStackCard = true
-
         card.isOpen = isOpen
         card.interactive = isOpen
+        card.holder = this
+        card.initZindex = this.length
 
-        const cardPos = this.getCardPositionByIndex(card.indexInStack)
+        const cardPos = this.getCardPositionByIndex(card.indexInHolder)
         card.initPosX = cardPos.x
         card.initPosY = cardPos.y
-        // card.x = cardPos.x
-        // card.y = cardPos.y
     }
 
-    removeCard(card) {
-        card.isStackCard = false
-        card.indexInStack = undefined
-        card.stackId = undefined
-
+    removeCard(isFlip = true) {
         this.cards.pop()
         this.updateHeight()
+
+        if (this.length > 0 && isFlip) {
+
+            const indexOfPrevCard = this.length - 1
+            const lastCard = this.cards[indexOfPrevCard]
+
+            if (!lastCard.isOpen) {
+                lastCard.flipInStak(350)
+                lastCard.isOpen = true
+            }
+        }
     }
 
     updateHeight() {
@@ -82,25 +77,16 @@ export class StackView {
         this.updateBorderHeight()
     }
 
-    createBorder(borderX, borderY, borderWidth, borderHeight, borderRadius) {
-        if (this.border) this.border.destroy()
-
-        this.border = new PIXI.Graphics()
-        this.border.beginFill(0xFF3300)
-        this.border.drawRoundedRect(borderX, borderY, borderWidth, borderHeight, borderRadius)
-        this.border.endFill()
-        this.border.visible = false
+    createBorder() {
+        this.border = new PIXI.NineSlicePlane(PIXI.Texture.from('border'), 7, 7, 7, 7)
+        this.border.x = this.x - StackView.lineSize
+        this.border.y = this.y - StackView.lineSize
         this.parent.addChild(this.border)
+        this.hideBorder()
     }
 
     updateBorderHeight() {
-        const borderX = this.x - StackView.lineSize
-        const borderY = this.y - StackView.lineSize
-        const borderWidth = this.width + StackView.lineSize * 2
-        const borderHeight = Math.max(this.height + StackView.lineSize * 2, StackView.minHeight)
-        const borderRadius = StackView.borderRadius
-
-        this.createBorder(borderX, borderY, borderWidth, borderHeight, borderRadius)
+        this.border.height = Math.max(this.height + StackView.lineSize * 2, StackView.minHeight)
     }
 
     showBorder() {

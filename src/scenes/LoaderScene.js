@@ -8,7 +8,9 @@ const manifest = {
             name: "UI Bundle",
             assets:
             {
-                "background": "./resources/game-background.jpg"
+                "background": "./resources/game-background.jpg",
+                "submit": "./resources/submit_button.png",
+                "collect": "./resources/collect_button.png",
             }
         },
         {
@@ -22,8 +24,16 @@ const manifest = {
                 "card_back": "./resources/card_back.png",
                 "card_front": "./resources/card_front.png",
                 "reboot_deck": "./resources/reboot_deck.png",
+                "border": "./resources/border.png",
             }
-        }
+        },
+        {
+            name: "Fonts Bundle",
+            assets:
+            {
+                "custom-font": "./resources/FUTURAB.woff2",
+            }
+        },
     ]
 }
 
@@ -96,25 +106,25 @@ export class LoaderScene extends PIXI.Container {
                 backTexture.height = cardSize.height
 
                 const suitTexture = PIXI.Sprite.from(suit.name)
-                suitTexture.position.set(28, 5)
-                suitTexture.width = 12
-                suitTexture.height = 12
+                suitTexture.width = 13
+                suitTexture.height = 13
+                suitTexture.position.set(29, 5)
 
                 const topText = new PIXI.Text(value.name, new PIXI.TextStyle({
                     fill: suit.color,
                     fontSize: 16,
                     align: 'left',
-                    fontFamily: "\"Trebuchet MS\", Helvetica, sans-serif",
+                    fontFamily: "FUTURAB",
                     fontWeight: "bold",
                 }))
-                topText.position.set(4, 2)
+                topText.position.set(6, 1)
 
                 const middleText = new PIXI.Text(value.name, new PIXI.TextStyle({
                     fill: suit.color,
                     fontSize: 32,
                     align: 'left',
-                    fontFamily: "\"Trebuchet MS\", Helvetica, sans-serif",
-                    fontWeight: "bold",
+                    fontFamily: "FUTURAB",
+                    fontWeight: 900,
                 }))
                 middleText.anchor.set(0.5)
                 middleText.position.set(cardSize.width / 2, cardSize.height / 2 + 10)
