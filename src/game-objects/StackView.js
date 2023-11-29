@@ -1,7 +1,3 @@
-
-
-import * as PIXI from 'pixi.js'
-
 export class StackView {
     x
     y
@@ -43,10 +39,6 @@ export class StackView {
 
     get length() {
         return this.cards.length
-    }
-
-    get lastCard() {
-        return this.cards[this.length - 1]
     }
 
     addCard(card, isOpen = true) {

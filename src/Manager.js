@@ -1,5 +1,3 @@
-import * as PIXI from 'pixi.js'
-
 export class Manager {
     constructor() { }
     app
@@ -11,14 +9,20 @@ export class Manager {
     currResizeStageId
     RESIZE_STAGE
 
-    static initialize(width, minHeight, maxHeight, backColor, canvas, parentDiv) {
+    docElement
+    parentContainer
+
+    static initialize(width, minHeight, maxHeight, backColor) {
+        Manager.docElement = document.documentElement
+        Manager.parentContainer = document.getElementById("game-container")
         Manager.app = new PIXI.Application({
-            view: canvas,
+            view: document.getElementById("game"),
             resolution: window.devicePixelRatio || 1,
             autoDensity: true,
             backgroundColor: backColor,
-            resizeTo: parentDiv
+            resizeTo: Manager.parentContainer
         })
+
 
         Manager.canvasArea = {
             width: Manager.app.view.clientWidth,
@@ -39,10 +43,10 @@ export class Manager {
         Manager.app.ticker.add(Manager.update)
 
         window.addEventListener('resize', () => {
-            Manager.resize(parentDiv)
+            Manager.resize()
         })
 
-        Manager.resize(parentDiv)
+        Manager.resize()
     }
 
     static changeScene(newScene) {
@@ -61,9 +65,9 @@ export class Manager {
         }
     }
 
-    static resize(parentDiv) {
-        const viewportWidth = parentDiv.clientWidth
-        const viewportHeight = parentDiv.clientHeight
+    static resize() {
+        const viewportWidth = window.innerWidth
+        const viewportHeight = window.innerHeight
 
         const { 
             width: gameWidth, 
@@ -97,6 +101,11 @@ export class Manager {
 
             Manager.currResizeStageId = RESIZE_STAGE.MIN
         }
+
+        Manager.docElement.style.setProperty("--app-height", `${viewportHeight}px`)
+
+        Manager.parentContainer.style.setProperty("width", `${canvasWidth}px`)
+        Manager.parentContainer.style.setProperty("height", `${canvasHeight}px`)
 
         Manager.app.resize()
 

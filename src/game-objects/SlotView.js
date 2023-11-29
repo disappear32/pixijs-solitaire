@@ -1,7 +1,3 @@
-
-
-import * as PIXI from 'pixi.js'
-
 export class SlotView {
     x
     y
@@ -48,16 +44,11 @@ export class SlotView {
         background.y = this.y
         background.width = this.width
         background.height = this.height
-        background.interactive = true
         this.parent.addChild(background)
     }
 
     get length() {
         return this.cards.length
-    }
-
-    get lastCard() {
-        return this.cards[this.length - 1]
     }
 
     addCard(card) {

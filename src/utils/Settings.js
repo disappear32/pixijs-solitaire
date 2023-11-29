@@ -23,7 +23,7 @@ const settings = {
     cardSize: {
         width: 48,
         height: 70
-    },
+    }
 }
 
 

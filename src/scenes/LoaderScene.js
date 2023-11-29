@@ -2,38 +2,36 @@ import { Manager } from "../Manager.js"
 import { GameScene } from "./GameScene.js"
 import Settings from "../utils/Settings.js"
 
-import * as PIXI from 'pixi.js'
-
 const manifest = {
     bundles: [
         {
             name: "UI Bundle",
             assets:
             {
-                "background": "/src/games/solitaire/resources/game-background.jpg",
-                "submit": "/src/games/solitaire/resources/submit_button.png",
-                "collect": "/src/games/solitaire/resources/collect_button.png",
+                "background": "./resources/game-background.jpg",
+                "submit": "./resources/submit_button.png",
+                "collect": "./resources/collect_button.png",
             }
         },
         {
             name: "Cards Bundle",
             assets:
             {
-                "spade": "/src/games/solitaire/resources/spade.png",
-                "club": "/src/games/solitaire/resources/club.png",
-                "heart": "/src/games/solitaire/resources/heart.png",
-                "diamond": "/src/games/solitaire/resources/diamond.png",
-                "card_back": "/src/games/solitaire/resources/card_back.png",
-                "card_front": "/src/games/solitaire/resources/card_front.png",
-                "reboot_deck": "/src/games/solitaire/resources/reboot_deck.png",
-                "border": "/src/games/solitaire/resources/border.png",
+                "spade": "./resources/spade.png",
+                "club": "./resources/club.png",
+                "heart": "./resources/heart.png",
+                "diamond": "./resources/diamond.png",
+                "card_back": "./resources/card_back.png",
+                "card_front": "./resources/card_front.png",
+                "reboot_deck": "./resources/reboot_deck.png",
+                "border": "./resources/border.png",
             }
         },
         {
             name: "Fonts Bundle",
             assets:
             {
-                "custom-font": "/src/games/solitaire/resources/FUTURAB.woff2",
+                "custom-font": "./resources/FUTURAB.woff2",
             }
         },
     ]
@@ -43,14 +41,14 @@ export class LoaderScene extends PIXI.Container {
     constructor() {
         super()
 
-        this.loadAssets().then(() => {
+        this.initializeLoader().then(() => {
             this.createGameTextures()
             this.gameLoaded()
         })
 
     }
 
-    async loadAssets() {
+    async initializeLoader() {
         await PIXI.Assets.init({ manifest: manifest })
 
         const bundleIds = manifest.bundles.map(bundle => bundle.name)

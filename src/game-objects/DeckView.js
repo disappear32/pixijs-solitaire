@@ -1,5 +1,3 @@
-import * as PIXI from 'pixi.js'
-
 export class DeckView extends PIXI.Sprite {
     width
     height
@@ -23,10 +21,6 @@ export class DeckView extends PIXI.Sprite {
 
     get length() {
         return this.cards.length
-    }
-
-    get lastCard() {
-        return this.cards[this.length - 1]
     }
 
     addCard(card, isOpen = false) {
