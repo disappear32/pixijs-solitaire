@@ -19,6 +19,10 @@ export class OpenDeckView {
         return this.cards.length
     }
 
+    get lastCard() {
+        return this.cards[this.length - 1]
+    }
+
     addCard(card) {
         this.cards.push(card)
 

@@ -9,6 +9,11 @@ import { SubmitButtonView } from "../game-objects/UI/SubmitCollectButtonsView.js
 import { CollectButtonView } from "../game-objects/UI/SubmitCollectButtonsView.js"
 import Settings from "../utils/Settings.js"
 
+import * as PIXI from 'pixi.js'
+import * as TWEEN from '@tweenjs/tween.js'
+
+const CARDS_COUNT = 52
+
 export class GameScene extends PIXI.Container {
     adaptiveContainer
     stableGameContainer
@@ -79,55 +84,45 @@ export class GameScene extends PIXI.Container {
         this.startGame()
     }
 
-    startGame() {
+    async startGame() {
         this.cards.forEach(card => {
             card.x = this.deck.x
             card.y = this.deck.y
+
             this.deck.addCard(card)
         })
 
-        this.startAnimation().then(() => {
-            this.initInteractive()
-            this.submitButton.show()
-        })
+        await this.startAnimation()
+        await this.initInteractive()
+        await this.submitButton.show()
     }
 
     async startAnimation() {
-        let deckCardCount = 0
+        let deckCardCounter = CARDS_COUNT
 
-        const emptyArrayOfEmptyCards = []
+        const moveCardFromDeckToStack = async (index, stack) => {
+            deckCardCounter--
+
+            const card = this.cards[deckCardCounter]
+            const deck = this.deck
+            const isOpen = index == stack.initLenght - 1
+
+            deck.removeCard()
+            stack.addCard(card, isOpen)
+            card.zIndex = card.initZindex
+
+            if (isOpen) await card.flipAndMoveToInitialPos(200)
+            else await card.moveToInitialPos(100)
+        }
 
         for (const stack of this.stacks) {
-
-            emptyArrayOfEmptyCards.push(deckCardCount)
-
-            for (const emptyCard of emptyArrayOfEmptyCards) {
-                await new Promise(resolve => {
-                    setTimeout(() => {
-
-                        const card = this.cards[this.cards.length - deckCardCount - 1]
-                        const deck = this.deck
-                        const indexInStack = emptyArrayOfEmptyCards.indexOf(emptyCard)
-                        const isOpen = indexInStack == stack.initLenght - 1 ? true : false
-
-                        deck.removeCard()
-                        stack.addCard(card, isOpen)
-                        card.zIndex = card.initZindex
-
-                        if (isOpen) card.flipAndMoveToInitialPos(200)
-                        else card.moveToInitialPos(100)
-
-                        deckCardCount++
-
-                        resolve()
-
-                    }, 100)
-                })
+            for (let i = 0; i < stack.initLenght; i++) {
+                await moveCardFromDeckToStack(i, stack)
             }
         }
     }
 
-    async moveAllCardsToDeck() {
+    async moveAllCardsToDeck() { //TODO
 
         for (const stack of this.stacks) {
             let isOpen = true
@@ -148,33 +143,55 @@ export class GameScene extends PIXI.Container {
         }
     }
 
-    initInteractive() {
+    async initInteractive() {
         this.interactive = true
-
-        this.isCardDragging = false // Переписать, надо детектить автоматический мув по изменению позиции
-
-        this.isDragging = false
         this.dragObj = undefined
 
         this.on('pointerdown', (event) => {
-
             this.dragObj = event.target
 
             if (this.dragObj instanceof CardView) {
                 const card = this.dragObj
 
-                this.onDragStart(event, card)
+                if ((card.isStackCard || card.isDeckCard || card.isOpenDeckCard) && card.isOpen) {
+
+                    this.lastPointerPosition = event.data.getLocalPosition(this.stableGameContainer)
+                }
             }
         })
 
         this.on('pointermove', (event) => {
-
-            if (this.isCardDragging) {
-                this.isDragging = true
-
+            if (this.dragObj instanceof CardView) {
                 const card = this.dragObj
 
-                this.onDragMove(event, card)
+                card.zIndex = 25
+
+                const newPointerPosition = event.data.getLocalPosition(this.stableGameContainer)
+
+                if (card.isStackCard) {
+
+                    const deltaX = newPointerPosition.x - this.lastPointerPosition.x
+                    const deltaY = newPointerPosition.y - this.lastPointerPosition.y
+
+                    const groupStackCards = card.holder.cards.filter((cardInStack, index) => cardInStack.isOpen && index >= card.indexInHolder)
+                    groupStackCards.forEach(groupCard => {
+                        groupCard.updateCardPos(deltaX, deltaY)
+
+                        groupCard.zIndex = groupCard.indexInHolder + 25
+                    })
+                }
+
+                if (!card.isStackCard && card.isOpenDeckCard) {
+
+                    const deltaX = newPointerPosition.x - this.lastPointerPosition.x
+                    const deltaY = newPointerPosition.y - this.lastPointerPosition.y
+
+                    card.updateCardPos(deltaX, deltaY)
+                }
+
+                this.lastPointerPosition = newPointerPosition
+
+                this.detectContactingHolder(card)
             }
         })
 
@@ -183,9 +200,60 @@ export class GameScene extends PIXI.Container {
             if (this.dragObj instanceof CardView) {
                 const card = this.dragObj
 
-                if (!this.isDragging && card.isOpen) this.autoDetectActiveSlot(card)
+                if (card.isOpen) {
 
-                if (card.isOpen) this.onDragEnd(card)
+                    if (card.x == card.initPosX && card.y == card.initPosY && card.isOpen) this.autoDetectActiveSlot(card)
+
+                    let groupStackCards = card.isStackCard ?
+                        card.holder.cards.filter((cardInStack, index) => cardInStack.isOpen && index >= card.indexInHolder) :
+                        undefined
+
+                    const isStackCard = card.isStackCard
+                    const isOpenDeckCard = card.isOpenDeckCard
+
+                    const updateCardHolder = (card, nextHolder) => {
+                        const prevHolder = card.holder
+
+                        prevHolder.removeCard()
+                        nextHolder.addCard(card)
+                    }
+
+                    const activeStack = this.stacks.filter(stack => stack.isActive)[0]
+                    if (activeStack) {
+
+                        if (activeStack.length == 0 && card.isStackCard && card.value == 13) groupStackCards.forEach(groupCard => updateCardHolder(groupCard, activeStack))
+                        if (activeStack.length == 0 && card.isOpenDeckCard && card.value == 13) updateCardHolder(card, activeStack)
+
+                        if (activeStack.length > 0) {
+
+                            const isNextCardSuitable = card.value + 1 == activeStack.lastCard.value && card.suitId % 2 != activeStack.lastCard.suitId % 2
+
+                            if (isNextCardSuitable && card.isStackCard) groupStackCards.forEach(groupCard => updateCardHolder(groupCard, activeStack))
+                            if (isNextCardSuitable && card.isOpenDeckCard) updateCardHolder(card, activeStack)
+                        }
+
+                        activeStack.hideBorder()
+                    }
+
+                    const activeSlot = this.slots.filter(slot => slot.isActive)[0]
+                    if (!activeStack && activeSlot) {
+
+                        if (activeSlot.length == 0 && card.suitId == activeSlot.id && card.value == 1) updateCardHolder(card, activeSlot)
+
+                        if (activeSlot.length > 0 && card.suitId == activeSlot.id) {
+
+                            const isNextCardSuitable = card.value == activeSlot.lastCard.value + 1
+
+                            if (isNextCardSuitable) updateCardHolder(card, activeSlot)
+                        }
+
+                        activeSlot.hideBorder()
+                    }
+
+                    if (!activeSlot && isStackCard) groupStackCards.forEach((groupCard, index) => groupCard.moveToInitialPos(100 + 50 * index))
+                    if (!activeSlot && isOpenDeckCard) card.moveToInitialPos()
+                    if (activeSlot) card.moveToInitialPos()
+                }
 
                 if (card.isDeckCard && !card.isOpen) {
 
@@ -227,110 +295,8 @@ export class GameScene extends PIXI.Container {
                 this.collectButton.hide()
             }
 
-            this.isCardDragging = false
-            this.isDragging = false
             this.dragObj = undefined
         })
-    }
-
-    onDragStart(event, card) {
-        if ((card.isStackCard || card.isDeckCard || card.isOpenDeckCard) && card.isOpen) {
-
-            this.lastPointerPosition = event.data.getLocalPosition(this.stableGameContainer)
-
-            this.isCardDragging = true
-        }
-    }
-
-    onDragMove(event, card) {
-
-        card.zIndex = 25
-
-        const updateCardPos = (card, deltaX, deltaY) => {
-            card.x += deltaX
-            card.y += deltaY
-        }
-
-        const newPointerPosition = event.data.getLocalPosition(this.stableGameContainer)
-
-        if (card.isStackCard) {
-
-            const deltaX = newPointerPosition.x - this.lastPointerPosition.x
-            const deltaY = newPointerPosition.y - this.lastPointerPosition.y
-
-            const groupStackCards = card.holder.cards.filter((cardInStack, index) => cardInStack.isOpen && index >= card.indexInHolder)
-            groupStackCards.forEach(groupCard => {
-                updateCardPos(groupCard, deltaX, deltaY)
-
-                groupCard.zIndex = groupCard.indexInHolder + 25
-            })
-        }
-
-        if (!card.isStackCard && (card.isDeckCard || card.isOpenDeckCard)) {
-
-            const deltaX = newPointerPosition.x - this.lastPointerPosition.x
-            const deltaY = newPointerPosition.y - this.lastPointerPosition.y
-            updateCardPos(card, deltaX, deltaY)
-        }
-
-        this.lastPointerPosition = newPointerPosition
-
-        this.detectContactingHolder(card)
-    }
-
-    onDragEnd(card) {
-
-        let groupStackCards = card.isStackCard ?
-            card.holder.cards.filter((cardInStack, index) => cardInStack.isOpen && index >= card.indexInHolder) :
-            undefined
-
-        const isStackCard = card.isStackCard
-        const isOpenDeckCard = card.isOpenDeckCard
-
-        const updateCardHolder = (card, nextHolder) => {
-            const prevHolder = card.holder
-
-            prevHolder.removeCard()
-            nextHolder.addCard(card)
-        }
-
-        const activeStack = this.stacks.filter(stack => stack.isActive)[0]
-        if (activeStack) {
-
-            if (activeStack.length == 0 && card.isStackCard && card.value == 13) groupStackCards.forEach(groupCard => updateCardHolder(groupCard, activeStack))
-            if (activeStack.length == 0 && card.isOpenDeckCard && card.value == 13) updateCardHolder(card, activeStack)
-
-            if (activeStack.length > 0) {
-
-                const lastCardOfactiveStack = activeStack.cards[activeStack.length - 1]
-                const isNextCardSuitable = card.value + 1 == lastCardOfactiveStack.value && card.suitId % 2 != lastCardOfactiveStack.suitId % 2
-
-                if (isNextCardSuitable && card.isStackCard) groupStackCards.forEach(groupCard => updateCardHolder(groupCard, activeStack))
-                if (isNextCardSuitable && card.isOpenDeckCard) updateCardHolder(card, activeStack)
-            }
-
-            activeStack.hideBorder()
-        }
-
-        const activeSlot = this.slots.filter(slot => slot.isActive)[0]
-        if (!activeStack && activeSlot) {
-
-            if (activeSlot.length == 0 && card.suitId == activeSlot.id && card.value == 1) updateCardHolder(card, activeSlot)
-
-            if (activeSlot.length > 0 && card.suitId == activeSlot.id) {
-
-                const lastCardOfActiveSlot = activeSlot.cards[activeSlot.length - 1]
-                const isNextCardSuitable = card.value == lastCardOfActiveSlot.value + 1
-
-                if (isNextCardSuitable) updateCardHolder(card, activeSlot)
-            }
-
-            activeSlot.hideBorder()
-        }
-
-        if (!activeSlot && isStackCard) groupStackCards.forEach((groupCard, index) => groupCard.moveToInitialPos(100 + 50 * index))
-        if (!activeSlot && isOpenDeckCard) card.moveToInitialPos()
-        if (activeSlot) card.moveToInitialPos()
     }
 
     detectContactingHolder(card) {
@@ -392,17 +358,13 @@ export class GameScene extends PIXI.Container {
     }
 
     autoDetectActiveSlot(card) {
-        const lastIndexInStack = card.holder.length - 1
-
-        if (card.indexInHolder == lastIndexInStack || card.isDeckCard || card.isOpenDeckCard) {
-
+        if (card.indexInHolder == card.holder.length - 1 || card.isDeckCard || card.isOpenDeckCard) {
             this.slots.forEach(slot => {
 
                 if (slot.length == 0 && card.suitId == slot.id && card.value == 1) slot.isActive = true
 
                 if (slot.length > 0) {
-                    const lastCardOfActiveSlot = slot.cards[slot.length - 1]
-                    const isNextCardSuitable = card.value == lastCardOfActiveSlot.value + 1
+                    const isNextCardSuitable = card.value == slot.lastCard.value + 1
 
                     if (!card.isSlotCard && card.suitId == slot.id && isNextCardSuitable) slot.isActive = true
                 }
@@ -412,39 +374,39 @@ export class GameScene extends PIXI.Container {
     }
 
     async autoCollect() {
-        const autoMoveCard = async () => {
-            const minSlot = () => {
+        const getMinLengthSlot = () => {
 
-                let min = {
-                    slot: this.slots[0],
-                    length: this.slots[0].length
-                }
-                for (let i = 0; i < 3; i++) if (min.length > this.slots[i + 1].length) min = {
-                    slot: this.slots[i + 1],
-                    length: this.slots[i + 1].length
-                }
-
-                return min.slot
+            let min = {
+                slot: this.slots[0],
+                length: this.slots[0].length
+            }
+            for (let i = 0; i < 3; i++) if (min.length > this.slots[i + 1].length) min = {
+                slot: this.slots[i + 1],
+                length: this.slots[i + 1].length
             }
 
-            const currSlot = minSlot()
-            const relevantSuitId = currSlot.id
-            const relevantValue = currSlot.length > 0 ? currSlot.cards[currSlot.length - 1].value + 1 : 1
+            return min.slot
+        }
 
-            const currCard = this.cards.filter(card => card.value == relevantValue && card.suitId == relevantSuitId)[0]
-            const cardStack = currCard.holder
+        const autoMoveCard = async () => {
+
+            const currSlot = getMinLengthSlot()
+            const relevantSuitId = currSlot.id
+            const relevantValue = currSlot.length > 0 ? currSlot.lastCard.value + 1 : 1
+
+            const relevantCard = this.cards.filter(card => card.value == relevantValue && card.suitId == relevantSuitId)[0]
+            const cardStack = relevantCard.holder
 
             cardStack.removeCard()
-            currSlot.addCard(currCard)
+            currSlot.addCard(relevantCard)
 
-            await currCard.moveToInitialPos()
+            await relevantCard.moveToInitialPos()
         }
 
         let countOfStackCard = 0
         this.stacks.forEach(stack => countOfStackCard += stack.length)
 
-        const helpArray = new Array(countOfStackCard)
-        for (const card of helpArray) await autoMoveCard()
+        for (let i = 0; i < countOfStackCard; i++) await autoMoveCard()
     }
 
     createAdaptiveContainer() {
@@ -484,12 +446,8 @@ export class GameScene extends PIXI.Container {
         const suitsMap = Settings.suits
 
         let cardKey = 0
-        for (let i = 0; i < 4; i++) {
-            const suitKey = i
-
-            for (let j = 0; j < 13; j++) {
-                const valueKey = j
-
+        for (let suitKey = 0; suitKey < 4; suitKey++) {
+            for (let valueKey = 0; valueKey < 13; valueKey++) {
                 map.set(cardKey, {
                     suit: {
                         name: suitsMap.get(suitKey).name,
@@ -503,18 +461,18 @@ export class GameScene extends PIXI.Container {
             }
         }
 
-        let m = map.size, t, i
+        let mapSize = map.size, currItem, randomKey
 
         // Пока есть элементы для перемешивания
-        while (m) {
+        while (mapSize) {
 
             // Взять оставшийся элемент
-            i = Math.floor(Math.random() * m--);
+            randomKey = Math.floor(Math.random() * mapSize--)
 
             // И поменять его местами с текущим элементом
-            t = map.get(m);
-            map.set(m, map.get(i))
-            map.set(i, t);
+            currItem = map.get(mapSize)
+            map.set(mapSize, map.get(randomKey))
+            map.set(randomKey, currItem)
         }
 
         return map

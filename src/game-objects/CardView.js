@@ -3,6 +3,9 @@ import { SlotView } from "./SlotView.js"
 import { DeckView } from "./DeckView.js"
 import { OpenDeckView } from "./OpenDeckView.js"
 
+import * as PIXI from 'pixi.js'
+import * as TWEEN from '@tweenjs/tween.js'
+
 export class CardView extends PIXI.Sprite {
     name
     suitName
@@ -152,5 +155,10 @@ export class CardView extends PIXI.Sprite {
     changeTexture() {
         if (this.texture == this.frontTexture) this.texture = this.backTexture
         else this.texture = this.frontTexture
+    }
+
+    updateCardPos (deltaX, deltaY) {
+        this.x += deltaX
+        this.y += deltaY
     }
 }

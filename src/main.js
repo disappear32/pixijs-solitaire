@@ -7,5 +7,3 @@ Manager.changeScene(new LoaderScene())
 
 globalThis.__PIXI_APP__ = Manager.app // Отладка
 
-
-

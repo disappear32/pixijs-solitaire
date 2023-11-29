@@ -1,3 +1,6 @@
+import * as PIXI from 'pixi.js'
+import * as TWEEN from '@tweenjs/tween.js'
+
 class SubmitCollectButtonsView extends PIXI.Sprite {
     constructor(gameContainer, x, y, textureName) {
         super(PIXI.Texture.from(textureName))
